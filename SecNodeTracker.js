@@ -6,7 +6,7 @@ const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
 const cfg = {
-    host: local.getItem('rpcbind'),
+    host: local.getItem('rpcallowip') || local.getItem('rpcbind'),
     port: local.getItem('rpcport'),
     ssl: {
         enabled: false
