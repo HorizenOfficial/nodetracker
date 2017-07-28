@@ -1,0 +1,19 @@
+{
+  "name": "zensecnodetracker",
+  "version": "0.0.1",
+  "description": "zencash secure node tracking application",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup": "node setup.js"
+  },
+  "author": "Allan Dumaine",
+  "license": "MIT",
+  "dependencies": {
+    "bitcoin-core": "^1.2.0",
+    "node-localstorage": "^1.3.0",
+    "promptly": "^2.2.0",
+    "socket.io-client": "^2.0.3",
+    "zcash": "^0.1.0"
+  }
+}

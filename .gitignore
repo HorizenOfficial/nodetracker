@@ -1,0 +1,9 @@
+#local vs files
+.vscode
+
+#config files
+config/*
+
+
+#node modules
+node_modules/*
