@@ -66,7 +66,7 @@ const getRPC = () => {
         } else if (fs.existsSync(path2)) {
             lines = fs.readFileSync(path2, "utf8").split("\n");
         } else if (fs.existsSync(path3)) {
-            lines = fs.readFileSync(path2, "utf8").split("\n");
+            lines = fs.readFileSync(path3, "utf8").split("\n");
         }
 
         //console.log(path);

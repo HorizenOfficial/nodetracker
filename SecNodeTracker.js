@@ -5,8 +5,11 @@ const local = new LocalStorage('./config');
 const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
+let host =  local.getItem('rpcallowip') || local.getItem('rpcbind');
+if (!host) host = '127.0.0.1';
+
 const cfg = {
-    host: local.getItem('rpcallowip') || local.getItem('rpcbind'),
+    host: host,
     port: local.getItem('rpcport'),
     ssl: {
         enabled: false
