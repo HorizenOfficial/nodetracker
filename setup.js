@@ -16,7 +16,7 @@ const validator = (value) => {
 //get values if setup rerun
 let addr = localStorage.getItem('stakeaddr') || null;
 let email = localStorage.getItem('email') || null;
-let urlDefault = 'https://tracksys.zensystem.io';
+//let urlDefault = 'https://tracksys.zensystem.io';
 
 let msg1 = addr ? ' (Default: ' + addr + '):' : ':';
 let msg2 = email ? '(Default: ' + email + '):' : ':';
@@ -56,16 +56,16 @@ const getRPC = () => {
     let lines;
     try {
 
-		let path1 = oshome + "/zencash/.zen/zen.conf";
-        let path2 = oshome +  "/.zen/zen.conf";
-        
-		if (fs.existsSync(path1)){
-			lines = fs.readFileSync(path1, "utf8").split("\n");
-		}else if (fs.existsSync(path2)){
-			lines = fs.readFileSync(path2, "utf8").split("\n");
-		}
 
-		//console.log(path);
+        if (fs.existsSync(path1)) {
+            lines = fs.readFileSync(path1, "utf8").split("\n");
+        } else if (fs.existsSync(path2)) {
+            lines = fs.readFileSync(path2, "utf8").split("\n");
+        } else if (fs.existsSync(path3)) {
+            lines = fs.readFileSync(path2, "utf8").split("\n");
+        }
+
+        //console.log(path);
     }
     catch (e) {
         console.log("ERROR finding or reading zen.conf file. Make sure the zen secure node is set up properly.");
@@ -75,6 +75,7 @@ const getRPC = () => {
     lines.pop();
 
     let config = {};
+    let testnet = false;
     lines.forEach(line => {
         if (line.indexOf('#') == -1 && line.indexOf("rpc") == 0) {
 
@@ -84,7 +85,11 @@ const getRPC = () => {
             localStorage.setItem(key, val);
 
         }
+        if (line == 'testnet=1') testnet = true;
     });
+
+    if (!testnet)
+        return console.log("This version should only be run on testnet.  Please reconfigure");
 
     console.log("Setup Complete");
 
