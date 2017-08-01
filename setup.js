@@ -17,6 +17,7 @@ const validator = (value) => {
 let addr = localStorage.getItem('stakeaddr') || null;
 let email = localStorage.getItem('email') || null;
 //let urlDefault = 'https://tracksys.zensystem.io';
+let urlDefault = 'http://devtracksys.secnodes.com';
 
 let msg1 = addr ? ' (Default: ' + addr + '):' : ':';
 let msg2 = email ? '(Default: ' + email + '):' : ':';
@@ -56,6 +57,9 @@ const getRPC = () => {
     let lines;
     try {
 
+        let path1 = oshome + "/.zen/zen.conf";
+        let path2 = oshome + "/zencash/.zen/zen.conf";
+        let path3 = oshome + "/AppData/Roaming/Zen/zen.conf";
 
         if (fs.existsSync(path1)) {
             lines = fs.readFileSync(path1, "utf8").split("\n");
