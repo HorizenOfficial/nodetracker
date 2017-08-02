@@ -64,21 +64,22 @@ class SecNode {
     }
 
     getPrimaryAddress(cb) {
-        //this.corerpc.getAddressesByAccount("", (err, data) => {
-        this.corerpc.getAccountAddress("", (err, data) => {
+
+        this.corerpc.getAddressesByAccount("", (err, data) => {
+       
             if (err) {
                 console.log(err);
                 return cb(errmsg);
             }
 
-            return cb(null, data);
+            return cb(null, data[0]);
         });
     }
 
-    getPrimaryBal(taddr, cb) {
-        this.zenrpc.z_getbalance(taddr)
-            .then((bal) => {
-                cb(null, bal);
+    getWalletBal(cb) {
+        this.corerpc.getInfo()
+            .then((info) => {
+                cb(null, info.balance);
             });
     }
 
@@ -183,26 +184,30 @@ class SecNode {
         var self = this;
         this.corerpc.getInfo()
             .then((data) => {
+
                 let stats = {
                     "blocks": data.blocks,
-                    "connections": data.connections
+                    "connections": data.connections,
+                    "bal" : data.balance
                 }
+
                 if (self.ident) {
-                    self.zenrpc.z_getbalance(self.ident.taddr)
-                        .then((bal) => {
-                            stats.bal = bal;
-                            //socket.emit("node", { type: "stats", stats: stats, ident: ident })
-                            return cb(null, stats);
-                        });
+                    
+                   return cb(null, stats);
+
                 } else {
-                    return cb('ident not set')
+
+                    return cb('ident not set');
+
                 }
             })
             .catch(err => {
+
                 let msg = err.cause ? err.cause : err.message;
                 console.log(logtime(), "getStats " + msg);
                 // console.log(err);
                 return cb(err);
+                
             });
     }
 

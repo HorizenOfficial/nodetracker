@@ -53,7 +53,7 @@ socket.on('connect', () => {
 			console.log("Secure Node t_address=" + taddr);
 			SecNode.ident = ident;
 
-			SecNode.getPrimaryBal(taddr, (err, bal) => {
+			SecNode.getWalletBal((err, bal) => {
 				if (err) return console.log(err);
 
 				if (bal < 0.001) {
