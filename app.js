@@ -53,19 +53,27 @@ socket.on('connect', () => {
 			console.log("Secure Node t_address=" + taddr);
 			SecNode.ident = ident;
 
-			SecNode.getWalletBal((err, bal) => {
+				SecNode.getAddrWithBal((err, result) => {
 				if (err) return console.log(err);
 
-				if (bal < 0.001) {
-					console.log("Node balance too low for challenge transactions");
-					console.log("Please add at least 1 zen to " + taddr);
+				if (result.bal == 0) {
+					console.log("Challenge private address balance is 0");
+					console.log("Please add at least .5 zen to the private address below");
 					if (!nodeid) {
 						console.log("Unable to register node. Exiting.")
 						process.exit();
 					}
 				} else {
-					console.log("Node balance for challenge transactions is " + bal);
+					console.log("Balance for challenge transactions is " + result.bal);
+					if (result.bal < 0.001) {
+					console.log("Challenge private address balance getting low");
+					console.log("Please add at least .5 zen to the private addres below");
+					}
 				}
+
+				console.log("Using the following address for challenges");
+				console.log(result.addr)
+
 				let identinit = ident;
 				//only pass email on init.  
 				identinit.email = local.getItem('email');
@@ -90,8 +98,17 @@ socket.on("action", (data) => {
 			break;
 
 		case 'get stats':
-			SecNode.getStats();
-			console.log(logtime(), "stats")
+			SecNode.getStats((err, stats)=>{
+				if (err) {
+                    if (ident) {
+                        socket.emit("node", { type: "down", ident: ident });
+                    }
+                } else {
+                    socket.emit("node", { type: "stats", stats: stats, ident: ident });
+                }
+
+			});
+			console.log(logtime(), "send stats")
 			break;
 	
 		case 'get config':
@@ -99,15 +116,23 @@ socket.on("action", (data) => {
 			break;
 
 		case 'challenge':
-			SecNode.execChallenge(data);
+			SecNode.execChallenge(data.chal);
 			break;
 	}
 })
 
+const logtime = () => {
+	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
+}
+
+const conCheck = () =>{
+	setInterval(() =>{
+		if(!socket.connected) console.log(logtime(), "No connection to server");
+	}, 60000
+	)
+}
 
 SecNode.socket = socket;
 SecNode.initialize();
+conCheck();
 
-const logtime = () => {
-	return (new Date()).toLocaleString() + " --";
-}

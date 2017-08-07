@@ -5,7 +5,7 @@ const local = new LocalStorage('./config');
 const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
-let host =  local.getItem('rpcallowip') || local.getItem('rpcbind');
+let host = local.getItem('rpcallowip') || local.getItem('rpcbind');
 if (!host) host = '127.0.0.1';
 
 const cfg = {
@@ -21,7 +21,7 @@ const cfg = {
 
 const errmsg = "Unable to connect to zend. Please check the zen rpc settings and ensure zend is running";
 
-let opTimer = null;
+
 
 class SecNode {
     constructor(corerpc, zenrpc) {
@@ -31,8 +31,11 @@ class SecNode {
 
         this.statsTimer = null;
         this.statsLoop = () => {
-            //get stats  
+
             const self = this;
+
+            if (!self.socket.connected) return;
+
             this.getStats((err, stats) => {
                 if (err) {
                     if (self.ident) {
@@ -45,10 +48,15 @@ class SecNode {
             })
         };
         this.configcount = 0;
+        this.chalStart = null;
+        this.chalRunning = false;
+        this.opTimer = null;
+        this.opTimerInterval = 1000 * 10;
+        this.amt = 0.000001;
+        this.fee = 0.000001;
     }
 
     static auto() {
-
         let corerpc = new Client(cfg);
         let zenrpc = new Zcash(cfg);
         return new SecNode(corerpc, zenrpc);
@@ -56,7 +64,6 @@ class SecNode {
 
     initialize() {
         this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
-
     }
 
     loop() {
@@ -66,7 +73,7 @@ class SecNode {
     getPrimaryAddress(cb) {
 
         this.corerpc.getAddressesByAccount("", (err, data) => {
-       
+
             if (err) {
                 console.log(err);
                 return cb(errmsg);
@@ -76,86 +83,186 @@ class SecNode {
         });
     }
 
-    getWalletBal(cb) {
-        this.corerpc.getInfo()
-            .then((info) => {
-                cb(null, info.balance);
+    getAddrWithBal(cb) {
+
+        const self = this;
+
+        this.zenrpc.z_listaddresses()
+            .then((result) => {
+
+                if (result.length == 0) {
+                    console.log("No private address found. Please create one and send at least .5 ZEN for challenges");
+
+                    return cb(null)
+                }
+
+                let bal = 0;
+                let addr = result[0];
+
+                self.zenrpc.z_getbalance(addr)
+                    .then((balance) => {
+                        return cb(null, { "addr": addr, "bal": balance });
+                    })
+                    .catch(err => {
+                        cb(err)
+                    });
+            })
+            .catch(err => {
+                cb(err)
             });
     }
 
-    /*
-    execChallenge(blockid, node_taddr, serverAddr, cb) {
+    execChallenge(chal) {
 
         //given a block number get the hash
         //get the block
         //get the merkle root from the block
         //create the transaction and send
         //poll the operation for completion
-        //return the txid
+        //return a object with result and if success txid and exec time
 
-        this.corerpc.getBlockHash(blockid, (err, hash) => {
+        var self = this;
+        console.log(logtime(), "Start challenge. " + chal.crid);
 
-            if (err) return cb(err)
-            this.corerpc.getBlock(hast, (err, block) => {
-                console.log(block);
+        if (self.chalRunning) {
+
+            let resp = { "crid": chal.crid, "status": "error", "error": "Previous challenge still running. " + self.crid }
+            resp.ident = self.ident;
+
+            self.socket.emit("chalresp", resp)
+
+            console.log(logtime(), "Challenge " + self.crid + " is currently running. Failed " + chal.crid)
+            return
+
+        }
+
+        self.crid = chal.crid
+        self.corerpc.getBlockHash(chal.blocknum, (err, hash) => {
+
+            if (err) return console.log(err)
+
+            self.corerpc.getBlock(hash, (err, block) => {
 
                 let msgBuff = new Buffer.from(block.merkleroot);
-                let amts = [{ "address": serverAddr, "amount": "0.0000", "memo": msgBuff.toString('hex') }];
-                console.log(amts)
-                this.zenrpc.z_sendmany(node_taddr, amts)
-                    .then(opid => {
+                let amts = [{ "address": chal.sendto, "amount": self.amt, "memo": msgBuff.toString('hex') }];
 
-                        return this.checkOp(opid, cb);
+                self.getAddrWithBal((err, result) => {
 
-                    })
-                    .catch(err => {
-                        console.log("send error", err);
-                        cb("send error", err)
+                    if (err) return console.log(err);
+
+                    let zaddr = result.addr;
+                    if (result.bal == 0) {
+                        console.log(logtime(), "Challenge private address balance is 0. Cannot perform challenge");
+                        console.log(logtime(), "Please send .5 zen to " + zaddr);
                     }
-                    );
+
+                    console.log('Using ' + zaddr + ' for challenge. bal=' + result.bal)
+
+                    if (zaddr) {
+
+                        self.zenrpc.z_sendmany(zaddr, amts, 1, self.fee)
+                            .then(opid => {
+
+                                console.log("OperationId=" + opid);
+
+                                self.chalStart = new Date();
+                                self.chalRunning = true;
+                                self.opTimer = setInterval(() => {
+                                    self.checkOp(opid, chal);
+                                }
+                                    , self.opTimerInterval);
+                                return
+                            })
+                            .catch(err => {
+
+                                let resp = { "crid": chal.crid, "status": "error", "error": err }
+                                resp.ident = self.ident;
+                                console.log(logtime(), "Challenge: unable to create and send transaction.");
+                                console.log(err);
+                                self.socket.emit("chalresp", resp)
+                            }
+                            );
+                    } else {
+
+                        let resp = { "crid": chal.crid, "status": "error", "error": "no available balance found" }
+                        resp.ident = self.ident;
+                        console.log("challenge: unable to find address with balance.", err);
+                        self.socket.emit("chalresp", resp)
+                    }
+                });
             });
         })
     }
 
-    checkOp(opid, cb) {
-        console.log('checkop', opid);
-        opTimer = setInterval(() => {
-            this.zenrpc.z_getoperationstatus([opid])
-                .then(results => {
+    checkOp(opid, chal) {
 
-                    console.log(results);
-                    if (results[0].status == "success") {
-                        this.zenrpc.z_getoperationresult([opid])
-                            .then(response => {
-                                //socket.emit("txid", response[0].result.txid);
-                                clearInterval(opTimer);
-                                return cb(null, response[0].result.txid)
-                            })
-                            .catch(err => {
-                                console.log(err);
-                                return cb(err)
-                            });
-                    } else {
-                        let status = results[0].status;
-                        console.log(status);
-                        //	if(status == "failed"){
-                        console.log(results.error.message);
+        let self = this;
 
-                        clearInterval(opTimer);
-                        return cb(results.error.message)
-                        //	}
+        if (!self.chalRunning) {
+            console.log(logtime(), "Clearing timer");
+            clearInterval(self.opTimer);
+            return;
+        }
+
+        self.zenrpc.z_getoperationstatus([opid])
+            .then(operation => {
+
+                if (operation.length ==0 )return
+                let op = operation[0];
+
+                let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
+                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status)
+
+                if (op.status == "success") {
+
+                    console.log(logtime(), "Challenge submit: " + op.status);
+
+                    let resp = {
+                        "crid": chal.crid,
+                        "status": op.status,
+                        "txid": op.result.txid,
+                        "execSeconds": op.execution_secs,
                     }
 
-                })
-                .catch(err => {
-                    console.log("status");
-                    console.log(err);
-                });
-        }
-            , 5000);
+                    console.log(op);
+                    console.log("txid= " + op.result.txid);
 
+                    resp.ident = self.ident;
+
+                    self.chalRunning = false;
+                    self.socket.emit("chalresp", resp)
+
+                    //clear the operation from queue
+                    self.zenrpc.z_getoperationresult([opid]);
+
+
+                } else if (op.status == "failed") {
+
+                    console.log(logtime(), "Challenge result: " + op.status)
+                    console.log(op.error.message);
+
+                    let resp = { "crid": chal.crid, "status": op.status, "error": op.error.message }
+                    self.chalRunning = false;
+
+                    resp.ident = self.ident;
+                    self.socket.emit("chalresp", resp);
+
+                    //clear the operation from queue
+                    self.zenrpc.z_getoperationresult([opid]);
+                }
+
+                return
+            })
+            .catch(err => {
+
+                self.chalRunning = false;
+                console.log("challenge error");
+                console.log(err);
+                clearInterval(self.opTimer);
+                return
+            });
     }
-    */
+
     getConfig(poolver, hw) {
         //   node version,  poolver, and hw
         const self = this;
@@ -173,14 +280,12 @@ class SecNode {
 
             })
             .catch(err => {
-
                 console.log("get config", err);
-
             }
             );
     }
     getStats(cb) {
-        //return   node version,  poolver, and hw
+
         var self = this;
         this.corerpc.getInfo()
             .then((data) => {
@@ -188,26 +293,21 @@ class SecNode {
                 let stats = {
                     "blocks": data.blocks,
                     "connections": data.connections,
-                    "bal" : data.balance
+                    "bal": data.balance
                 }
 
                 if (self.ident) {
-                    
-                   return cb(null, stats);
-
+                    return cb(null, stats);
                 } else {
-
                     return cb('ident not set');
-
                 }
             })
             .catch(err => {
 
                 let msg = err.cause ? err.cause : err.message;
                 console.log(logtime(), "getStats " + msg);
-                // console.log(err);
+                //console.log(err);
                 return cb(err);
-                
             });
     }
 
@@ -215,7 +315,7 @@ class SecNode {
 }
 
 const logtime = () => {
-    return (new Date()).toLocaleString() + " --";
+    return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
 
 module.exports = SecNode;
