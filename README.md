@@ -54,6 +54,7 @@ The setup prompts for the address and email and allows you to override the defau
 Follow any instructions shown on the console.  Rerun setup if needed: it will remember your previous values. 
 Use Ctrl-C to break out of the app.
  
+Check your node at http://devtracksys.secnodes.com
   
 Report any issues to @devman in the zencash slack #securenodes channel. 
 
