@@ -54,6 +54,7 @@ class SecNode {
         this.opTimerInterval = 1000 * 10;
         this.amt = 0.000001;
         this.fee = 0.000001;
+        this.minChalBal = .001;
     }
 
     static auto() {
@@ -207,7 +208,7 @@ class SecNode {
         self.zenrpc.z_getoperationstatus([opid])
             .then(operation => {
 
-                if (operation.length ==0 )return
+                if (operation.length == 0) return
                 let op = operation[0];
 
                 let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
@@ -290,17 +291,24 @@ class SecNode {
         this.corerpc.getInfo()
             .then((data) => {
 
-                let stats = {
-                    "blocks": data.blocks,
-                    "connections": data.connections,
-                    "bal": data.balance
-                }
+                self.getAddrWithBal((err, addrBal) => {
 
-                if (self.ident) {
-                    return cb(null, stats);
-                } else {
-                    return cb('ident not set');
-                }
+                    if(err) return cb(err)
+
+                    let stats = {
+                        "blocks": data.blocks,
+                        "connections": data.connections,
+                        "bal": addrBal.bal
+                    }
+                    if(addrBal.bal < self.minChalBal) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
+
+                    if (self.ident) {
+                        return cb(null, stats);
+                    } else {
+                        return cb('ident not set');
+                    }
+
+                })
             })
             .catch(err => {
 
