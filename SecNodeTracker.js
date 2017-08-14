@@ -55,6 +55,7 @@ class SecNode {
         this.amt = 0.000001;
         this.fee = 0.000001;
         this.minChalBal = .001;
+        this.defaultMemTime = 45;
     }
 
     static auto() {
@@ -208,11 +209,26 @@ class SecNode {
         self.zenrpc.z_getoperationstatus([opid])
             .then(operation => {
 
-                if (operation.length == 0) return
-                let op = operation[0];
-
                 let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
-                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status)
+                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
+
+                if (operation.length == 0) {
+                    if (elapsed < 12) return    
+                    
+                    //if here then operation lost or unavailable. 
+                    self.chalRunning = false;
+                    let resp = { "crid": chal.crid, "status": "failed", "error": "No operation found." }
+
+                    resp.ident = self.ident;
+                    self.socket.emit("chalresp", resp);
+                    
+                    console.log(logtime(), "Challenge submit: failed. Could not find zen operation." );
+                    console.log(logtime(), "Clearing timer");
+                    clearInterval(self.opTimer);
+                    return; 
+                }
+
+                let op = operation[0];
 
                 if (op.status == "success") {
 
