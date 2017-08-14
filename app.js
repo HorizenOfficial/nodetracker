@@ -25,12 +25,12 @@ console.log("Pool app version: " + poolver);
 
 
 //check memory
-let totmem = os.totalmem() / 1000000000;
-let freemem = os.freemem() / 1000000000;
-console.log("total memory=" + totmem.toFixed(2) + "  free memory=" + freemem.toFixed(2));
-
-if (freemem < 4) {
-	console.log("WARNING: Minimum available memory needed for creating shielded transactions is 4GB. swap file not checked.");
+if(process.platform == 'linux'){
+	console.log(SecNode.getProcMeminfo(true));
+}else{
+	let totmem = os.totalmem() / (1000 * 1000 * 1024);
+	let freemem = os.freemem() / (1000* 1000 * 1024);
+	console.log("total memory=" + totmem.toFixed(1) + "GB  free memory=" + freemem.toFixed(1)) +"GB";
 }
 
 

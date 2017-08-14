@@ -318,9 +318,54 @@ class SecNode {
                 return cb(err);
             });
     }
+	getProcMeminfo(display, cb) {
+	  if (cb && typeof cb === 'function') {
+		return fs.readFile('/proc/meminfo', (err, meminfo) => {
+		  if (err) {
+			return cb(err);
+		  }
+		  return cb(null, _formatProcMeminfo(meminfo, display));
+		});
+	  }
 
-
+	  let meminfo = fs.readFileSync('/proc/meminfo');
+	  return _formatProcMeminfo(meminfo, display);
+	}
 }
+
+const _formatProcMeminfo = (meminfo, display) => {
+	let lines = meminfo.toString().split('\n');
+	let disp = "";
+	let data = {};
+	let toGb = 1000*1024;
+  
+	lines.forEach( (line) => {
+	
+		let row = line.split(':');
+		let item = row[0]
+		if (item == 'MemTotal' || 
+			item == 'MemFree' || 
+			item == 'MemAvailable' ||
+			item == 'SwapTotal' ||
+			item == 'SwapFree')
+			{
+			let num = parseInt(row[1].trim().split(' ')[0]);
+			 if (display){
+
+				disp += item + ": " + (num/toGb).toFixed(2) + "GB  ";
+			 } else {
+				data[item] = (num/toGb).toFixed(2) + "GB"
+			}
+		}
+	});
+	
+	if(display)	return disp;
+	
+	return data;
+  };
+
+
+
 
 const logtime = () => {
     return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
