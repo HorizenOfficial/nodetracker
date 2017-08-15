@@ -1,7 +1,7 @@
 
 const LocalStorage = require('node-localstorage').LocalStorage;
 const local = new LocalStorage('./config');
-
+const fs = require('fs');
 const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
@@ -21,7 +21,7 @@ const cfg = {
 
 const errmsg = "Unable to connect to zend. Please check the zen rpc settings and ensure zend is running";
 
-
+const os = process.platform;
 
 class SecNode {
     constructor(corerpc, zenrpc) {
@@ -56,6 +56,10 @@ class SecNode {
         this.fee = 0.000001;
         this.minChalBal = .001;
         this.defaultMemTime = 45;
+
+        this.memBefore = {};
+        this.memNearEnd = {};
+       
     }
 
     static auto() {
@@ -137,7 +141,7 @@ class SecNode {
             return
 
         }
-
+        if (os == 'linux') self.memBefore = self.getProcMeminfo(false);
         self.crid = chal.crid
         self.corerpc.getBlockHash(chal.blocknum, (err, hash) => {
 
@@ -210,7 +214,7 @@ class SecNode {
             .then(operation => {
 
                 let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
-                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
+               
 
                 if (operation.length == 0) {
                     if (elapsed < 12) return    
@@ -229,6 +233,7 @@ class SecNode {
                 }
 
                 let op = operation[0];
+                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
 
                 if (op.status == "success") {
 
@@ -238,7 +243,11 @@ class SecNode {
                         "crid": chal.crid,
                         "status": op.status,
                         "txid": op.result.txid,
-                        "execSeconds": op.execution_secs,
+                        "execSeconds": op.execution_secs
+                    }
+                    if(os == 'linux'){
+                        resp.memBefore = self.memBefore,
+                        resp.memNearEnd = self.memNearEnd
                     }
 
                     console.log(op);
@@ -247,7 +256,9 @@ class SecNode {
                     resp.ident = self.ident;
 
                     self.chalRunning = false;
-                    self.socket.emit("chalresp", resp)
+                    self.socket.emit("chalresp", resp);
+
+                    local.setItem('lastExecSec', op.execution_secs);
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
@@ -266,6 +277,13 @@ class SecNode {
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
+                }else if (os == 'linux' && opt.status == "executing"){
+
+                    let last = local.getItem('lastExecSec') || self.defaultMemTime;
+                
+                    if(last - elapsed < 12 ){
+                        self.memNearEnd =  self.getProcMeminfo(false)
+                    }            
                 }
 
                 return
@@ -334,6 +352,14 @@ class SecNode {
                 return cb(err);
             });
     }
+
+    getBlockHeight (){
+     this.corerpc.getInfo()
+            .then((data) => {
+                return data.blocks;
+            });
+    }
+
 	getProcMeminfo(display, cb) {
 	  if (cb && typeof cb === 'function') {
 		return fs.readFile('/proc/meminfo', (err, meminfo) => {
