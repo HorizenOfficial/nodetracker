@@ -25,12 +25,12 @@ console.log("Pool app version: " + poolver);
 
 
 //check memory
-if(process.platform == 'linux'){
+if (process.platform == 'linux') {
 	console.log(SecNode.getProcMeminfo(true));
-}else{
+} else {
 	let totmem = os.totalmem() / (1000 * 1000 * 1024);
-	let freemem = os.freemem() / (1000* 1000 * 1024);
-	console.log("total memory=" + totmem.toFixed(1) + "GB  free memory=" + freemem.toFixed(1)) +"GB";
+	let freemem = os.freemem() / (1000 * 1000 * 1024);
+	console.log("total memory=" + totmem.toFixed(1) + "GB  free memory=" + freemem.toFixed(1)) + "GB";
 }
 
 
@@ -49,16 +49,22 @@ socket.on('connect', () => {
 			//	console.log("Unable to connect to zend. Please check the zen rpc settings and ensure zend is running");
 			//process.exit();
 		} else {
+
 			ident.taddr = taddr;
 			console.log("Secure Node t_address=" + taddr);
 			SecNode.ident = ident;
 
-				SecNode.getAddrWithBal((err, result) => {
-				if (err) return console.log(err);
+			SecNode.getAddrWithBal((err, result) => {
+				if (err) {
+					console.log(err);
+					return
+				}
 
-				if (result.bal == 0) {
+				if (result.bal == 0 && result.valid) {
+
 					console.log("Challenge private address balance is 0");
 					console.log("Please add at least .5 zen to the private address below");
+
 					if (!nodeid) {
 						console.log("Unable to register node. Exiting.")
 						process.exit();
@@ -66,8 +72,8 @@ socket.on('connect', () => {
 				} else {
 					console.log("Balance for challenge transactions is " + result.bal);
 					if (result.bal < 0.001) {
-					console.log("Challenge private address balance getting low");
-					console.log("Please add at least .5 zen to the private addres below");
+						console.log("Challenge private address balance getting low");
+						console.log("Please add at least .5 zen to the private addres below");
 					}
 				}
 
@@ -86,9 +92,9 @@ socket.on('connect', () => {
 	console.log(logtime(), "Connected to pool server");
 
 });
-	socket.on('msg', (msg) => {
-		console.log(logtime(), msg);
-	});
+socket.on('msg', (msg) => {
+	console.log(logtime(), msg);
+});
 
 socket.on("action", (data) => {
 	//console.log(data);
@@ -98,19 +104,19 @@ socket.on("action", (data) => {
 			break;
 
 		case 'get stats':
-			SecNode.getStats((err, stats)=>{
+			SecNode.getStats((err, stats) => {
 				if (err) {
-                    if (ident) {
-                        socket.emit("node", { type: "down", ident: ident });
-                    }
-                } else {
-                    socket.emit("node", { type: "stats", stats: stats, ident: ident });
-                }
+					if (ident) {
+						socket.emit("node", { type: "down", ident: ident });
+					}
+				} else {
+					socket.emit("node", { type: "stats", stats: stats, ident: ident });
+				}
 
 			});
 			console.log(logtime(), "send stats")
 			break;
-	
+
 		case 'get config':
 			SecNode.getConfig(poolver, hw);
 			break;
@@ -125,9 +131,9 @@ const logtime = () => {
 	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
 
-const conCheck = () =>{
-	setInterval(() =>{
-		if(!socket.connected) console.log(logtime(), "No connection to server");
+const conCheck = () => {
+	setInterval(() => {
+		if (!socket.connected) console.log(logtime(), "No connection to server");
 	}, 60000
 	)
 }

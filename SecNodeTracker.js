@@ -59,7 +59,7 @@ class SecNode {
 
         this.memBefore = {};
         this.memNearEnd = {};
-       
+
     }
 
     static auto() {
@@ -104,10 +104,26 @@ class SecNode {
 
                 let bal = 0;
                 let addr = result[0];
+                let lastChalBlockNum = local.getItem('lastChalBlock');
 
                 self.zenrpc.z_getbalance(addr)
                     .then((balance) => {
-                        return cb(null, { "addr": addr, "bal": balance });
+
+                        self.corerpc.getInfo()
+                            .then((data) => {
+
+                                if (lastChalBlockNum && data.blocks - lastChalBlockNum < 3) {
+                                    return cb(null, { "addr": addr, "bal": balance, "valid": false });
+
+                                } else {
+                                    return cb(null, { "addr": addr, "bal": balance, "valid": true });
+                                }
+
+                            })
+
+                        // return cb(null, { "addr": addr, "bal": balance,"valid":valid });
+
+                        //  })
                     })
                     .catch(err => {
                         cb(err)
@@ -158,13 +174,13 @@ class SecNode {
 
                     let zaddr = result.addr;
                     if (result.bal == 0) {
-                        console.log(logtime(), "Challenge private address balance is 0. Cannot perform challenge");
-                        console.log(logtime(), "Please send .5 zen to " + zaddr);
+                        console.log(logtime(), "Challenge private address balance is 0 at the moment. Cannot perform challenge");
+                        //console.log(logtime(), "Please send .5 zen to " + zaddr);
                     }
 
                     console.log('Using ' + zaddr + ' for challenge. bal=' + result.bal)
 
-                    if (zaddr) {
+                    if (zaddr && result.bal > 0) {
 
                         self.zenrpc.z_sendmany(zaddr, amts, 1, self.fee)
                             .then(opid => {
@@ -190,9 +206,9 @@ class SecNode {
                             );
                     } else {
 
-                        let resp = { "crid": chal.crid, "status": "error", "error": "no available balance found" }
+                        let resp = { "crid": chal.crid, "status": "error", "error": "no available balance found or 0" }
                         resp.ident = self.ident;
-                        console.log("challenge: unable to find address with balance.", err);
+                        console.log("challenge: unable to find address with balance or balance 0.");
                         self.socket.emit("chalresp", resp)
                     }
                 });
@@ -214,22 +230,22 @@ class SecNode {
             .then(operation => {
 
                 let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
-               
+
 
                 if (operation.length == 0) {
-                    if (elapsed < 12) return    
-                    
+                    if (elapsed < 12) return
+
                     //if here then operation lost or unavailable. 
                     self.chalRunning = false;
                     let resp = { "crid": chal.crid, "status": "failed", "error": "No operation found." }
 
                     resp.ident = self.ident;
                     self.socket.emit("chalresp", resp);
-                    
-                    console.log(logtime(), "Challenge submit: failed. Could not find zen operation." );
+
+                    console.log(logtime(), "Challenge submit: failed. Could not find zen operation.");
                     console.log(logtime(), "Clearing timer");
                     clearInterval(self.opTimer);
-                    return; 
+                    return;
                 }
 
                 let op = operation[0];
@@ -245,11 +261,11 @@ class SecNode {
                         "txid": op.result.txid,
                         "execSeconds": op.execution_secs
                     }
-                    if(os == 'linux'){
+                    if (os == 'linux') {
                         resp.memBefore = self.memBefore,
-                        resp.memNearEnd = self.memNearEnd
+                            resp.memNearEnd = self.memNearEnd
                     }
-
+                    console.log(resp)
                     console.log(op);
                     console.log("txid= " + op.result.txid);
 
@@ -259,6 +275,9 @@ class SecNode {
                     self.socket.emit("chalresp", resp);
 
                     local.setItem('lastExecSec', op.execution_secs);
+
+                    self.getBlockHeight(true);
+
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
@@ -277,13 +296,14 @@ class SecNode {
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
-                }else if (os == 'linux' && opt.status == "executing"){
+
+                } else if (os == 'linux' && op.status == "executing") {
 
                     let last = local.getItem('lastExecSec') || self.defaultMemTime;
-                
-                    if(last - elapsed < 12 ){
-                        self.memNearEnd =  self.getProcMeminfo(false)
-                    }            
+
+                    if (last - elapsed < 12) {
+                        self.memNearEnd = self.getProcMeminfo(false)
+                    }
                 }
 
                 return
@@ -327,14 +347,16 @@ class SecNode {
 
                 self.getAddrWithBal((err, addrBal) => {
 
-                    if(err) return cb(err)
+                    if (err) return cb(err)
 
                     let stats = {
                         "blocks": data.blocks,
                         "connections": data.connections,
-                        "bal": addrBal.bal
+                        "bal": addrBal.bal,
+                        "isValidBal": addrBal.valid
                     }
-                    if(addrBal.bal < self.minChalBal) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
+
+                    if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
                     if (self.ident) {
                         return cb(null, stats);
@@ -353,58 +375,68 @@ class SecNode {
             });
     }
 
-    getBlockHeight (){
-     this.corerpc.getInfo()
+    getBlockHeight(setLast) {
+
+        const self = this;
+        this.corerpc.getInfo()
             .then((data) => {
+                console.log("GETBLOCK set last", setLast)
+                if (setLast) local.setItem('lastChalBlock', data.blocks);
                 return data.blocks;
+            })
+            .catch(err => {
+
+                let msg = err.cause ? err.cause : err;
+                console.log(logtime(), "getBlockHeight " + msg);
+                return
             });
     }
 
-	getProcMeminfo(display, cb) {
-	  if (cb && typeof cb === 'function') {
-		return fs.readFile('/proc/meminfo', (err, meminfo) => {
-		  if (err) {
-			return cb(err);
-		  }
-		  return cb(null, _formatProcMeminfo(meminfo, display));
-		});
-	  }
 
-	  let meminfo = fs.readFileSync('/proc/meminfo');
-	  return _formatProcMeminfo(meminfo, display);
-	}
+    getProcMeminfo(display, cb) {
+        if (cb && typeof cb === 'function') {
+            return fs.readFile('/proc/meminfo', (err, meminfo) => {
+                if (err) {
+                    return cb(err);
+                }
+                return cb(null, _formatProcMeminfo(meminfo, display));
+            });
+        }
+
+        let meminfo = fs.readFileSync('/proc/meminfo');
+        return _formatProcMeminfo(meminfo, display);
+    }
 }
 
 const _formatProcMeminfo = (meminfo, display) => {
-	let lines = meminfo.toString().split('\n');
-	let disp = "";
-	let data = {};
-	let toGb = 1000*1024;
-  
-	lines.forEach( (line) => {
-	
-		let row = line.split(':');
-		let item = row[0]
-		if (item == 'MemTotal' || 
-			item == 'MemFree' || 
-			item == 'MemAvailable' ||
-			item == 'SwapTotal' ||
-			item == 'SwapFree')
-			{
-			let num = parseInt(row[1].trim().split(' ')[0]);
-			 if (display){
+    let lines = meminfo.toString().split('\n');
+    let disp = "";
+    let data = {};
+    let toGb = 1000 * 1024;
 
-				disp += item + ": " + (num/toGb).toFixed(2) + "GB  ";
-			 } else {
-				data[item] = (num/toGb).toFixed(2) + "GB"
-			}
-		}
-	});
-	
-	if(display)	return disp;
-	
-	return data;
-  };
+    lines.forEach((line) => {
+
+        let row = line.split(':');
+        let item = row[0]
+        if (item == 'MemTotal' ||
+            item == 'MemFree' ||
+            item == 'MemAvailable' ||
+            item == 'SwapTotal' ||
+            item == 'SwapFree') {
+            let num = parseInt(row[1].trim().split(' ')[0]);
+            if (display) {
+
+                disp += item + ": " + (num / toGb).toFixed(2) + "GB  ";
+            } else {
+                data[item] = (num / toGb).toFixed(2) + "GB"
+            }
+        }
+    });
+
+    if (display) return disp;
+
+    return data;
+};
 
 
 
