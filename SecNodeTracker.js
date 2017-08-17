@@ -265,7 +265,7 @@ class SecNode {
                         resp.memBefore = self.memBefore,
                             resp.memNearEnd = self.memNearEnd
                     }
-                    console.log(resp)
+                   
                     console.log(op);
                     console.log("txid= " + op.result.txid);
 
@@ -318,7 +318,7 @@ class SecNode {
             });
     }
 
-    getConfig(poolver, hw) {
+    getConfig(req, poolver, hw) {
         //   node version,  poolver, and hw
         const self = this;
         this.corerpc.getInfo()
@@ -329,6 +329,8 @@ class SecNode {
                     "protocolversion": data.protocolversion,
                     "wallet.version": data.walletversion
                 }
+
+                if (!self.ident.nid && req.nid) self.ident.nid = req.nid;
 
                 let config = { node: node, poolver: poolver, hw: hw }
                 self.socket.emit("node", { type: "config", ident: self.ident, config: config });
@@ -345,26 +347,35 @@ class SecNode {
         this.corerpc.getInfo()
             .then((data) => {
 
-                self.getAddrWithBal((err, addrBal) => {
+                self.zenrpc.z_getoperationstatus()
+                    .then(ops => {
+                        let count = 0;
+                        for (let op of ops) {
+                            op.status == 'queued' ? count++ : null;
+                        }
 
-                    if (err) return cb(err)
+                        self.getAddrWithBal((err, addrBal) => {
 
-                    let stats = {
-                        "blocks": data.blocks,
-                        "connections": data.connections,
-                        "bal": addrBal.bal,
-                        "isValidBal": addrBal.valid
-                    }
+                            if (err) return cb(err)
 
-                    if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
+                            let stats = {
+                                "blocks": data.blocks,
+                                "connections": data.connections,
+                                "bal": addrBal.bal,
+                                "isValidBal": addrBal.valid,
+                                "queueDepth" : count
+                            }
 
-                    if (self.ident) {
-                        return cb(null, stats);
-                    } else {
-                        return cb('ident not set');
-                    }
+                            if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
-                })
+                            if (self.ident) {
+                                return cb(null, stats);
+                            } else {
+                                return cb('ident not set');
+                            }
+
+                        })
+                    })
             })
             .catch(err => {
 
