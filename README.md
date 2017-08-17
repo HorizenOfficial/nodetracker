@@ -3,17 +3,26 @@
 
 This is installed on a Secure Node to allow it to communicate with the zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. It is very lightweight as it only needs to act as a connector between the node and server.
 
-## UPDATE 0.0.3
-Challenges are ready for testing. 
+## UPDATE 0.0.4
+Added prompt for FQDN to setup
+Updated stats to get private addr bal
+Changed mem check to /proc/meminfo for linux
+Check for lost operations
+Add mem checks to before and near end of challenge
+Fixed 'get config' on registration
+Work arounds for 0 bal after challenge, skip alert
+ 
 
-Setup should not need to be run.
+RUN SETUP after updating.
 
-Upate from github and restart.
+Upate from github:
 
    * git fetch origin
    * git checkout master
    * git pull
 
+Run: node setup
+Restart secnodetracker.
 
 
 ## Version Notes
