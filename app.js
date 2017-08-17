@@ -72,9 +72,9 @@ socket.on('connect', () => {
 					}
 				} else {
 					console.log("Balance for challenge transactions is " + result.bal);
-					if (result.bal < 0.001) {
+					if (result.bal < 0.001 && result.valid) {
 						console.log("Challenge private address balance getting low");
-						console.log("Please add at least .5 zen to the private addres below");
+						console.log("Please add at least .5 zen to the private address below");
 					}
 				}
 
@@ -90,7 +90,7 @@ socket.on('connect', () => {
 		}
 	});
 
-	console.log(logtime(), "Connected to pool server");
+	console.log(logtime(), "Connected to node pool server");
 
 });
 socket.on('msg', (msg) => {
@@ -98,7 +98,7 @@ socket.on('msg', (msg) => {
 });
 
 socket.on("action", (data) => {
-	//console.log(data);
+	
 	switch (data.action) {
 		case "set nid":
 			local.setItem("nodeid", data.nid);
@@ -119,7 +119,7 @@ socket.on("action", (data) => {
 			break;
 
 		case 'get config':
-			SecNode.getConfig(poolver, hw);
+			SecNode.getConfig(data, poolver, hw);
 			break;
 
 		case 'challenge':
