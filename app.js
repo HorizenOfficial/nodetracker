@@ -38,7 +38,8 @@ let taddr;
 
 //check if already registered
 let nodeid = local.getItem('nodeid') || null;
-let ident = { "nid": nodeid, "stkaddr": local.getItem('stakeaddr') };
+let fqdn = local.getItem('fqdn') || null;
+let ident = { "nid": nodeid, "stkaddr": local.getItem('stakeaddr'), "fqdn": fqdn };
 
 socket.on('connect', () => {
 	// check connectivity by getting the t_address.

@@ -16,12 +16,14 @@ const validator = (value) => {
 //get values if setup rerun
 let addr = localStorage.getItem('stakeaddr') || null;
 let email = localStorage.getItem('email') || null;
+let fqdn = localStorage.getItem('fqdn') || null;
 //let urlDefault = 'https://tracksys.zensystem.io';
 let urlDefault = 'http://devtracksys.secnodes.com';
 
 let msg1 = addr ? ' (Default: ' + addr + '):' : ':';
 let msg2 = email ? '(Default: ' + email + '):' : ':';
-let msg3 = '(Default: ' + urlDefault + '):';
+let msg3 = fqdn ? '(Default: ' + fqdn + '):' : ':';
+let msg4 = '(Default: ' + urlDefault + '):';
 
 //Prompt user for values 
 promptly
@@ -35,13 +37,19 @@ promptly
 
                 localStorage.setItem('email', value);
 
-                promptly.prompt('Server url' + msg3, { 'default': urlDefault })
+                promptly.prompt('Domain name used in cert - FQDN' + msg3, { 'default': fqdn })
                     .then((value) => {
 
-                        localStorage.setItem('serverurl', value);
+                        localStorage.setItem('fqdn', value);
 
-                        getRPC();
+                        promptly.prompt('Tracking Server url' + msg4, { 'default': urlDefault })
+                            .then((value) => {
 
+                                localStorage.setItem('serverurl', value);
+
+                                getRPC();
+
+                            })
                     })
             })
     })
