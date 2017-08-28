@@ -97,7 +97,7 @@ class SecNode {
             .then((result) => {
 
                 if (result.length == 0) {
-                    console.log("No private address found. Please create one and send at least .5 ZEN for challenges");
+                    console.log("No private address found. Please create one and send at least 1 ZEN for challenges");
 
                     return cb(null)
                 }
@@ -111,19 +111,11 @@ class SecNode {
 
                         self.corerpc.getInfo()
                             .then((data) => {
-
-                                if (lastChalBlockNum && data.blocks - lastChalBlockNum < 3) {
-                                    return cb(null, { "addr": addr, "bal": balance, "valid": false });
-
-                                } else {
-                                    return cb(null, { "addr": addr, "bal": balance, "valid": true });
-                                }
-
+                                let valid = true;
+                                if (lastChalBlockNum && data.blocks - parseInt(lastChalBlockNum) < 5) valid = false;
+                            
+                                return cb(null, { "addr": addr, "bal": balance, "valid": valid,"lastChalBlock": lastChalBlockNum  });
                             })
-
-                        // return cb(null, { "addr": addr, "bal": balance,"valid":valid });
-
-                        //  })
                     })
                     .catch(err => {
                         cb(err)
@@ -350,6 +342,7 @@ class SecNode {
                 self.zenrpc.z_getoperationstatus()
                     .then(ops => {
                         let count = 0;
+                        
                         for (let op of ops) {
                             op.status == 'queued' ? count++ : null;
                         }
@@ -360,12 +353,15 @@ class SecNode {
 
                             let stats = {
                                 "blocks": data.blocks,
-                                "connections": data.connections,
+                                "peers": data.connections,
                                 "bal": addrBal.bal,
                                 "isValidBal": addrBal.valid,
-                                "queueDepth" : count
+                                "queueDepth" : count,
+                                "lastChalBlock": addrBal.lastChalBlock,
+                                "lastExecSec": local.getItem('lastExecSec')
                             }
-
+                            console.log(stats)
+                            console.log("lastchalblock="+local.getItem('lastChalBlock'))
                             if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
                             if (self.ident) {

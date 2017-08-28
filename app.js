@@ -64,17 +64,18 @@ socket.on('connect', () => {
 				if (result.bal == 0 && result.valid) {
 
 					console.log("Challenge private address balance is 0");
-					console.log("Please add at least .5 zen to the private address below");
-
+					console.log("Please add at least 1 zen to the private address below");
+					
 					if (!nodeid) {
+						console.log(result.addr)
 						console.log("Unable to register node. Exiting.")
 						process.exit();
 					}
 				} else {
 					console.log("Balance for challenge transactions is " + result.bal);
-					if (result.bal < 0.001 && result.valid) {
+					if (result.bal < 0.01 && result.valid) {
 						console.log("Challenge private address balance getting low");
-						console.log("Please add at least .5 zen to the private address below");
+						console.log("Please add at least 1 zen to the private address below");
 					}
 				}
 
@@ -84,7 +85,7 @@ socket.on('connect', () => {
 				let identinit = ident;
 				//only pass email on init.  
 				identinit.email = local.getItem('email');
-				socket.emit('initnode', identinit);
+				return socket.emit('initnode', identinit);
 
 			})
 		}
