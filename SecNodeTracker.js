@@ -52,9 +52,9 @@ class SecNode {
         this.chalRunning = false;
         this.opTimer = null;
         this.opTimerInterval = 1000 * 10;
-        this.amt = 0.000001;
-        this.fee = 0.000001;
-        this.minChalBal = .001;
+        this.amt = 0.0001;
+        this.fee = 0.0001;
+        this.minChalBal = .01;
         this.defaultMemTime = 45;
 
         this.memBefore = {};
