@@ -10,6 +10,7 @@ This is installed on a Secure Node to allow it to communicate with the zensystem
  
  
 
+RUN SETUP after updating and be sure to _add a host name (FQDN)_ even if it not valid. It just for identification at this point.
 
 Upate from github:
 
