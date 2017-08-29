@@ -266,7 +266,7 @@ class SecNode {
                     self.chalRunning = false;
                     self.socket.emit("chalresp", resp);
 
-                    local.setItem('lastExecSec', op.execution_secs);
+                    local.setItem('lastExecSec', (op.execution_secs).toFixed(2));
 
                     self.getBlockHeight(true);
 
