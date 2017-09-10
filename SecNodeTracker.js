@@ -38,13 +38,14 @@ class SecNode {
 
             this.getStats((err, stats) => {
                 if (err) {
+                    console.log(logtime(), "Stat check failed. " + err);
                     if (self.ident) {
                         self.socket.emit("node", { type: "down", ident: self.ident });
                     }
                 } else {
                     self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
+                    console.log(logtime(), "stat check");
                 }
-                console.log(logtime(), "stat check");
             })
         };
         this.configcount = 0;
@@ -59,6 +60,8 @@ class SecNode {
 
         this.memBefore = {};
         this.memNearEnd = {};
+
+        this.waiting = false;
 
     }
 
@@ -77,14 +80,20 @@ class SecNode {
     }
 
     getPrimaryAddress(cb) {
-
+        const self = this;
         this.corerpc.getAddressesByAccount("", (err, data) => {
 
             if (err) {
-                console.log(err);
-                return cb(errmsg);
+                self.waiting = true;
+                if (err.code == -28) {
+                    console.log(logtime(), "Zend: " + err.message);
+                    return cb('Waiting on zend');
+                } else {
+                    console.log(logtime(), "Zend error: " + err.message);
+                    return cb(errmsg);
+                }
             }
-
+            self.waiting = false;
             return cb(null, data[0]);
         });
     }
@@ -113,8 +122,8 @@ class SecNode {
                             .then((data) => {
                                 let valid = true;
                                 if (lastChalBlockNum && data.blocks - parseInt(lastChalBlockNum) < 5) valid = false;
-                            
-                                return cb(null, { "addr": addr, "bal": balance, "valid": valid,"lastChalBlock": lastChalBlockNum  });
+
+                                return cb(null, { "addr": addr, "bal": balance, "valid": valid, "lastChalBlock": lastChalBlockNum });
                             })
                     })
                     .catch(err => {
@@ -257,7 +266,7 @@ class SecNode {
                         resp.memBefore = self.memBefore,
                             resp.memNearEnd = self.memNearEnd
                     }
-                   
+
                     console.log(op);
                     console.log("txid= " + op.result.txid);
 
@@ -336,13 +345,14 @@ class SecNode {
     getStats(cb) {
 
         var self = this;
+        if (self.waiting) return cb("Waiting for zend");
         this.corerpc.getInfo()
             .then((data) => {
 
                 self.zenrpc.z_getoperationstatus()
                     .then(ops => {
                         let count = 0;
-                        
+
                         for (let op of ops) {
                             op.status == 'queued' ? count++ : null;
                         }
@@ -356,12 +366,12 @@ class SecNode {
                                 "peers": data.connections,
                                 "bal": addrBal.bal,
                                 "isValidBal": addrBal.valid,
-                                "queueDepth" : count,
+                                "queueDepth": count,
                                 "lastChalBlock": addrBal.lastChalBlock,
                                 "lastExecSec": local.getItem('lastExecSec')
                             }
                             console.log(stats)
-                            console.log("lastchalblock="+local.getItem('lastChalBlock'))
+                            console.log("lastchalblock=" + local.getItem('lastChalBlock'))
                             if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
                             if (self.ident) {

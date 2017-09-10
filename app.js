@@ -41,15 +41,23 @@ let nodeid = local.getItem('nodeid') || null;
 let fqdn = local.getItem('fqdn') || null;
 let ident = { "nid": nodeid, "stkaddr": local.getItem('stakeaddr'), "fqdn": fqdn };
 
-socket.on('connect', () => {
+let initTimer;
+
+const initialize = () => {
 	// check connectivity by getting the t_address.
 	// pass identity to server on success
 	SecNode.getPrimaryAddress((err, taddr) => {
 		if (err) {
 			console.log(err);
-			//	console.log("Unable to connect to zend. Please check the zen rpc settings and ensure zend is running");
-			//process.exit();
+
+			if (!initTimer) {
+				initTimer = setInterval(() => {
+					initialize();
+				}, 10000)
+			}
+
 		} else {
+			if (initTimer) clearInterval(initTimer);
 
 			ident.taddr = taddr;
 			console.log("Secure Node t_address=" + taddr);
@@ -65,7 +73,7 @@ socket.on('connect', () => {
 
 					console.log("Challenge private address balance is 0");
 					console.log("Please add at least 1 zen to the private address below");
-					
+
 					if (!nodeid) {
 						console.log(result.addr)
 						console.log("Unable to register node. Exiting.")
@@ -91,7 +99,12 @@ socket.on('connect', () => {
 		}
 	});
 
-	console.log(logtime(), "Connected to node pool server");
+}
+
+socket.on('connect', () => {
+
+	console.log(logtime(), "Connected to node pool server. Initializing...");
+	initialize();
 
 });
 socket.on('msg', (msg) => {
@@ -99,7 +112,7 @@ socket.on('msg', (msg) => {
 });
 
 socket.on("action", (data) => {
-	
+
 	switch (data.action) {
 		case "set nid":
 			local.setItem("nodeid", data.nid);
