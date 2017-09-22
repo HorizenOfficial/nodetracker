@@ -31,22 +31,7 @@ class SecNode {
 
         this.statsTimer = null;
         this.statsLoop = () => {
-
-            const self = this;
-
-            if (!self.socket.connected) return;
-
-            this.getStats((err, stats) => {
-                if (err) {
-                    console.log(logtime(), "Stat check failed. " + err);
-                    if (self.ident) {
-                        self.socket.emit("node", { type: "down", ident: self.ident });
-                    }
-                } else {
-                    self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
-                    console.log(logtime(), "stat check");
-                }
-            })
+            this.collectStats();
         };
         this.configcount = 0;
         this.chalStart = null;
@@ -342,6 +327,27 @@ class SecNode {
             }
             );
     }
+
+    collectStats(){
+        const self = this;
+
+        if (!self.socket.connected) return;
+
+        this.getStats((err, stats) => {
+            if (err) {
+                console.log(logtime(), "Stat check failed. " + err);
+                if (self.ident) {
+                    self.socket.emit("node", { type: "down", ident: self.ident });
+                }
+            } else {
+                self.getTLSPeers(null, (err, tlsPeers) => {
+                stats.tlsPeers = tlsPeers;
+                self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
+                console.log(logtime(), "stat check");
+                });
+            }
+        })
+    }
     getStats(cb) {
 
         var self = this;
@@ -371,7 +377,7 @@ class SecNode {
                                 "lastExecSec": local.getItem('lastExecSec')
                             }
                             console.log(stats)
-                            console.log("lastchalblock=" + local.getItem('lastChalBlock'))
+                          //  console.log("lastchalblock=" + local.getItem('lastChalBlock'))
                             if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
                             if (self.ident) {
@@ -392,12 +398,56 @@ class SecNode {
             });
     }
 
+    getNetworks(req, cb) {
+        const self = this;
+        this.corerpc.getNetworkInfo()
+            .then((data) => {
+                let nets = data.localaddresses;
+                if (req) {
+                    if (!self.ident.nid && req.nid) self.ident.nid = req.nid;
+                    self.socket.emit("node", { type: "networks", ident: self.ident, nets });
+                } else {
+                    cb(null, nets)
+                }
+            })
+            .catch(err => {
+                console.log(logtime(), 'get networks ' + err);
+            }
+            );
+    }
+
+    getTLSPeers(req, cb) {
+        const self = this;
+        this.corerpc.getPeerInfo()
+            .then((data) => {
+                let peers = [];
+                if (!self.ident.nid && req.nid) self.ident.nid = req.nid;
+                for (let i = 0; i < data.length; i++) {
+                    let p = data[i];
+                    if (p.inbound == false) {
+                        let ip = p.addr.indexOf(']') != -1 ? p.addr.subtr(1, p.addr.indexOf(']')) : p.addr.substr(0, p.addr.indexOf(":"));
+                        let peer = { ip, tls: p.tls_verified };
+                        peers.push(peer);
+                    }
+                }
+                if (req) {
+                    self.socket.emit("node", { type: "peers", ident: self.ident, peers });
+                } else {
+                    cb(null, peers)
+                }
+            })
+            .catch(err => {
+                console.log(logtime(), 'get peers ' + err);
+            }
+            );
+    }
+
     getBlockHeight(setLast) {
 
         const self = this;
         this.corerpc.getInfo()
             .then((data) => {
-                console.log("GETBLOCK set last", setLast)
+              //  console.log("GETBLOCK set last", setLast)
                 if (setLast) local.setItem('lastChalBlock', data.blocks);
                 return data.blocks;
             })

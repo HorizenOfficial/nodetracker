@@ -39,7 +39,9 @@ let taddr;
 //check if already registered
 let nodeid = local.getItem('nodeid') || null;
 let fqdn = local.getItem('fqdn') || null;
-let ident = { "nid": nodeid, "stkaddr": local.getItem('stakeaddr'), "fqdn": fqdn };
+if (fqdn) fqdn = fqdn.trim();
+let stkaddr =  local.getItem('stakeaddr').trim();
+let ident = { "nid": nodeid, "stkaddr":stkaddr, "fqdn": fqdn };
 
 let initTimer;
 
@@ -90,10 +92,16 @@ const initialize = () => {
 				console.log("Using the following address for challenges");
 				console.log(result.addr)
 
-				let identinit = ident;
-				//only pass email on init.  
-				identinit.email = local.getItem('email');
-				return socket.emit('initnode', identinit);
+				ident.email = local.getItem('email');
+				SecNode.getNetworks(null, (err, nets)=>{
+					ident.nets = nets;
+					socket.emit('initnode', ident, ()=>{
+						//only pass email and nets on init.  
+						delete ident.email;
+						delete ident.nets;
+					});
+				})
+				return 
 
 			})
 		}
@@ -138,6 +146,10 @@ socket.on("action", (data) => {
 
 		case 'challenge':
 			SecNode.execChallenge(data.chal);
+			break;
+
+		case 'networks':
+			SecNode.getNets(data);
 			break;
 	}
 })
