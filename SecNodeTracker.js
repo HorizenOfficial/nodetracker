@@ -425,7 +425,7 @@ class SecNode {
                 for (let i = 0; i < data.length; i++) {
                     let p = data[i];
                     if (p.inbound == false) {
-                        let ip = p.addr.indexOf(']') != -1 ? p.addr.substr(1, p.addr.indexOf(']')) : p.addr.substr(0, p.addr.indexOf(":"));
+                        let ip = p.addr.indexOf(']') != -1 ? p.addr.substr(1, p.addr.indexOf(']')-1) : p.addr.substr(0, p.addr.indexOf(":"));
                         let peer = { ip, tls: p.tls_verified };
                         peers.push(peer);
                     }
