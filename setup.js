@@ -120,7 +120,7 @@ const getRPC = () => {
             let idx = line.indexOf("=");  //don't use split since user or pw could have =
             let key = line.substring(0, idx);
             let val = line.substring(idx + 1);
-	            if(key = 'rpcallowip'){
+	            if(key == 'rpcallowip'){
 	    	        if(localStorage.getItem('ipv') == 6){
                     //if ipv6 leave rpcallowip blank to prevent errors
 	    		    localStorage.setItem(key, '');
@@ -128,7 +128,9 @@ const getRPC = () => {
 	                else{
             	    localStorage.setItem(key, val);
 	                }
-	            }
+	            } else {
+                    localStorage.setItem(key, val);
+                }
         }
         if (line == 'testnet=1') testnet = true;
     });
