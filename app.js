@@ -1,18 +1,27 @@
 const SecNode = require('./SecNodeTracker').auto();
 const LocalStorage = require('node-localstorage').LocalStorage;
 const local = new LocalStorage('./config');
-const socket = require('socket.io-client')(local.getItem('serverurl'));  //('http://192.168.1.50:3333');
+const io = require('socket.io-client')
 const os = require('os');
 const pkg = require('./package.json');
-
-
+const init = require('./init');
 
 //check if setup was run
 if (local.length == 0) {
-	console.log("Please run setup: node setup.js");
+	console.log("Please run setup: node setup");
 	process.exit();
 }
 
+// host names without domain
+const servers = [local.getItem('servers')]; 
+const home = local.getItem('home');
+if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue.")
+let curIdx = servers.indexOf(home);
+let curServer = home;
+const protocol = `${init.protocol}://`;
+const domain = `.${init.domain}`;
+let socket = io(protocol + curServer + domain);
+let failoverTimer;
 
 //get cpu config
 const cpus = os.cpus();
@@ -21,7 +30,7 @@ const hw = { "CPU": cpus[0].model, "cores": cpus.length, "speed": cpus[0].speed 
 
 //self version
 const poolver = pkg.version;
-console.log("Pool app version: " + poolver);
+console.log("Tracker app version: " + poolver);
 
 
 //check memory
@@ -74,7 +83,7 @@ const initialize = () => {
 				if (result.bal == 0 && result.valid) {
 
 					console.log("Challenge private address balance is 0");
-					console.log("Please add at least 1 zen to the private address below");
+					console.log("Please add a total of 1 zen to the private address by sending 4 or more transactions.");
 
 					if (!nodeid) {
 						console.log(result.addr)
@@ -85,7 +94,7 @@ const initialize = () => {
 					console.log("Balance for challenge transactions is " + result.bal);
 					if (result.bal < 0.01 && result.valid) {
 						console.log("Challenge private address balance getting low");
-						console.log("Please add at least 1 zen to the private address below");
+						console.log("Please send a few small amounts (0.2) each to the private address below");
 					}
 				}
 
@@ -93,6 +102,7 @@ const initialize = () => {
 				console.log(result.addr)
 
 				ident.email = local.getItem('email');
+				ident.con = {home:home, cur:curServer}
 				SecNode.getNetworks(null, (err, nets)=>{
 					ident.nets = nets;
 					socket.emit('initnode', ident, ()=>{
@@ -111,10 +121,29 @@ const initialize = () => {
 
 socket.on('connect', () => {
 
-	console.log(logtime(), "Connected to node pool server. Initializing...");
+	console.log(logtime(), `Connected to node ${curServer}. Initializing...`);
 	initialize();
+	if (failoverTimer) clearInterval(failoverTimer);
 
 });
+
+socket.on('disconnect', () => {
+	//wait 3 minutes for current to be available
+	console.log(logtime(), 'Lost connection to ' + curServer)
+	failoverTimer = setInterval(()=>{
+		switchServer()
+	}, 180000);
+});
+
+socket.on('returnhome', () =>{
+	curServer = home;
+	curIdx = server.indexOf(home);
+	socket.close();
+	socket = io(protocol + curServer + domain);
+	console.log(logtime(), `Returning to home server ${curServer}.`);
+})
+
+
 socket.on('msg', (msg) => {
 	console.log(logtime(), msg);
 });
@@ -157,6 +186,16 @@ socket.on("action", (data) => {
 const logtime = () => {
 	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
+
+const switchServer = () =>{
+	let nextIdx = curIdx + 1 == servers.length ? 0 : curIdx +1;
+	curServer = servers[nextIdx];
+	curIdx = nextIdx;
+	console.log(logtime(), "Trying server: " + curServer);
+	socket.close();
+	socket = io(protocol + curServer + domain);
+}
+
 
 const conCheck = () => {
 	setInterval(() => {

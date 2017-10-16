@@ -3,7 +3,56 @@ const fs = require("fs");
 const oshome = require('os').homedir();
 const LocalStorage = require('node-localstorage').LocalStorage;
 const localStorage = new LocalStorage('./config');
+const init = require('./init');
 
+const http = require('http');
+
+let servers;
+let regList;
+let regions = [];
+let regPrompt = '';
+http.get(init.lookupServer, (res) => {
+    const { statusCode } = res;
+    const contentType = res.headers['content-type'];
+
+    let error;
+    if (statusCode !== 200) {
+        error = new Error('Request Failed.\n' +
+            `Status Code: ${statusCode}`);
+    } else if (!/^application\/json/.test(contentType)) {
+        error = new Error('Invalid content-type.\n' +
+            `Expected application/json but received ${contentType}`);
+    }
+    if (error) {
+        console.error(error.message);
+        // consume response data to free up memory
+        res.resume();
+        return;
+    }
+
+    res.setEncoding('utf8');
+    let rawData = '';
+    res.on('data', (chunk) => { rawData += chunk; });
+    res.on('end', () => {
+        try {
+            const parsedData = JSON.parse(rawData);
+            //  console.log(parsedData);
+            servers = parsedData.servers;
+            regList = parsedData.regions;
+            regList.forEach((r) => {
+                regPrompt += `${r[1]}(${r[0]}) `;
+                regions.push(r[0]);
+            });
+            localStorage.setItem('servers', servers);
+        } catch (e) {
+            console.error(e.message);
+        }
+    });
+}).on('error', (e) => {
+    console.error(`Got error: ${e.message}`);
+    console.error('Can not complete setup.')
+    process.exit();
+});
 
 const validator = (value) => {
     if (value.length !== 35) {
@@ -15,74 +64,97 @@ const validator = (value) => {
 //IP type validator
 const ipvalidator = (value) => {
     if (value == 4) {
-	return value;
+        return value;
     }
     if (value == 6) {
-	return value;
+        return value;
     }
     else {
-        throw new Error('The ip address format must be either 4 or 6.');
+        throw new Error('The ip address version must be either 4 or 6.');
     }
 };
+
+const regvalidator = (value) => {
+    let found = false;
+    for (let i = 0; i < regions.length; i++) {
+        if (value == regions[i]) {
+            found = true;
+            break
+        }
+    }
+    if (found) {
+        return value
+    } else {
+        throw new Error('Enter one of the region codes shown in (xxx)');
+    }
+}
+
 
 //get values if setup rerun
 let addr = localStorage.getItem('stakeaddr') || null;
 let email = localStorage.getItem('email') || null;
 let fqdn = localStorage.getItem('fqdn') || null;
 let ipv = localStorage.getItem('ipv') || 4;
-//let urlDefault = 'https://tracksys.zensystem.io';
-let urlDefault = 'http://devtracksys.secnodes.com';
+let region = localStorage.getItem('region') || null;
 
-let msg1 = addr ? ' (Default: ' + addr + '):' : ':';
-let msg2 = email ? '(Default: ' + email + '):' : ':';
-let msg3 = fqdn ? '(Default: ' + fqdn + '):' : ':';
-let msg4 = ipv ? '(Default: ' + ipv + '):' : ':';
-let msg5 = '(Default: ' + urlDefault + '):';
+let msg1 = addr ? ' (Existing: ' + addr + '):' : ':';
+let msg2 = email ? ' (Existing: ' + email + '):' : ':';
+let msg3 = fqdn ? ' (Existing: ' + fqdn + '):' : ':';
+let msg4 = ipv ? ' (Existing: ' + ipv + '):' : ':';
+let msg5 = region ? ' (Existing: ' + region + '):' : ':';
 
 //Prompt user for values 
 promptly
     .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
     .then((value) => {
-
         localStorage.setItem('stakeaddr', value);
-
         promptly.prompt('Alert email address' + msg2, { 'default': email })
             .then((value) => {
-
                 localStorage.setItem('email', value);
-
-                promptly.prompt('Domain name used in cert - FQDN' + msg3, { 'default': fqdn })
+                promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
                     .then((value) => {
-
                         localStorage.setItem('fqdn', value);
-
-			            promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv , 'validator': ipvalidator })
-				            .then((value) => {
-					
-					            localStorage.setItem('ipv', value);
-
-                        			promptly.prompt('Tracking Server url' + msg5, { 'default': urlDefault })
-                            				.then((value) => {
-							                //ipv6 check for correct server url
-							                if(ipv == 6){
-                                			localStorage.setItem('serverurl', 'http://[2600:3c02::f03c:91ff:fe3e:1669]');
-							                }
-							                else{
-							                localStorage.setItem('serverurl', value);
-							                }
-
-
-                                		getRPC();
-
-                            		})
-                    		})
-            		})
-    		})
-	})
+                        promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
+                            .then((value) => {
+                                localStorage.setItem('ipv', value);
+                                promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
+                                    .then((value) => {
+                                        setRegAndServer(value);
+                                        getRPC();
+                                    })
+                                    .catch((err) => {
+                                        console.log('ERROR: Region code ', err.message);
+                                    });
+                            })
+                            .catch((err) => {
+                                console.log('ERROR: ip address ', err.message);
+                            });
+                    })
+                    .catch((err) => {
+                        console.log('ERROR: hostname ', err.message);
+                    });
+            })
+            .catch((err) => {
+                console.log('ERROR: email address ', err.message);
+            });
+    })
     .catch((err) => {
-        console.log('Error:', err.message);
+        console.log('ERROR: stake addr ', err.message);
     });
 
+const setRegAndServer = (region) => {
+    localStorage.setItem('region', region);
+    let found = false;
+    for (let i = 0; i < servers.length; i++) {
+        let srv = servers[i].split('.');
+        if (srv[1] == region) {
+            localStorage.setItem('home', servers[i]);
+            found = true
+            break;
+        }
+    }
+    if (!found) console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue if it persists.");
+}
 
 //get zen rpc config
 const getRPC = () => {
@@ -120,23 +192,23 @@ const getRPC = () => {
             let idx = line.indexOf("=");  //don't use split since user or pw could have =
             let key = line.substring(0, idx);
             let val = line.substring(idx + 1);
-	            if(key == 'rpcallowip'){
-	    	        if(localStorage.getItem('ipv') == 6){
+            if (key == 'rpcallowip') {
+                if (localStorage.getItem('ipv') == 6) {
                     //if ipv6 leave rpcallowip blank to prevent errors
-	    		    localStorage.setItem(key, '');
-            		}
-	                else{
-            	    localStorage.setItem(key, val);
-	                }
-	            } else {
+                    localStorage.setItem(key, '');
+                }
+                else {
                     localStorage.setItem(key, val);
                 }
+            } else {
+                localStorage.setItem(key, val);
+            }
         }
         if (line == 'testnet=1') testnet = true;
     });
 
     if (!testnet)
-        return console.log("This version should only be run on testnet.  Please reconfigure");
+        return console.log("This version should only be run on testnet.  Please reconfigure zen.conf with testnet=1");
 
     console.log("Setup Complete");
 
