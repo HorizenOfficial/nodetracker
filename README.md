@@ -8,15 +8,16 @@ This is installed on a Secure Node to allow it to communicate with the zensystem
  - Added failover to other servers
  - Repository moved to zencashofficial
  
-### IMPORTANT STEPS -- Changing to a new repository:
+### IMPORTANT UPDATE STEPS -- Changing to a new repository:
 These are upgrade instructions.  If you are doing a new install seen the Installation instruction further down.
 This version connects to new zensystem.io servers (NOT devtracksys.secnodes.com).
 Setup needs to be re-run.
 
   1. Remove all the files in the tracker config folder
 
-  2. From within the secnodetracker folder. change repositories
-   * git remote set-url https://github.com/ZencashOfficial/secnodetracker.git
+  2. From within the secnodetracker folder. Change repositories then check if it matches.
+   * git remote set-url origin https://github.com/ZencashOfficial/secnodetracker.git
+   * git remote -v
   
   3. Update the files from github
    * git fetch origin
