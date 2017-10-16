@@ -5,7 +5,7 @@ const LocalStorage = require('node-localstorage').LocalStorage;
 const localStorage = new LocalStorage('./config');
 const init = require('./init');
 
-const http = require('http');
+const http = require('https');
 
 let servers;
 let regList;
