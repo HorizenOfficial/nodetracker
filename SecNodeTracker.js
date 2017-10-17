@@ -60,10 +60,6 @@ class SecNode {
         this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
     }
 
-    loop() {
-        this.getStats()
-    }
-
     getPrimaryAddress(cb) {
         const self = this;
         this.corerpc.getAddressesByAccount("", (err, data) => {
@@ -92,7 +88,6 @@ class SecNode {
 
                 if (result.length == 0) {
                     console.log("No private address found. Please create one and send at least 1 ZEN for challenges");
-
                     return cb(null)
                 }
 
@@ -102,7 +97,6 @@ class SecNode {
 
                 self.zenrpc.z_getbalance(addr)
                     .then((balance) => {
-
                         self.corerpc.getInfo()
                             .then((data) => {
                                 let valid = true;
@@ -155,7 +149,6 @@ class SecNode {
                 let amts = [{ "address": chal.sendto, "amount": self.amt, "memo": msgBuff.toString('hex') }];
 
                 self.getAddrWithBal((err, result) => {
-
                     if (err) return console.log(err);
 
                     let zaddr = result.addr;
@@ -214,9 +207,7 @@ class SecNode {
 
         self.zenrpc.z_getoperationstatus([opid])
             .then(operation => {
-
                 let elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
-
 
                 if (operation.length == 0) {
                     if (elapsed < 12) return

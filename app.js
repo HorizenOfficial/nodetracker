@@ -136,11 +136,12 @@ const setSocketEvents = () => {
 
 	socket.on('returnhome', () => {
 		curServer = home;
-		curIdx = server.indexOf(home);
+		curIdx = servers.indexOf(home);
 		console.log(logtime(), `Returning to home server ${curServer}.`);
 		socket.close();
 		socket = io(protocol + curServer + domain, { forceNew: true });
 		setSocketEvents();
+		SecNode.socket = socket;
 	})
 
 	socket.on('msg', (msg) => {
@@ -165,7 +166,7 @@ const setSocketEvents = () => {
 					}
 
 				});
-				console.log(logtime(), "send stats")
+				console.log(logtime(), "Stats: send initial stats.")
 				break;
 
 			case 'get config':
@@ -189,13 +190,14 @@ const logtime = () => {
 }
 
 const switchServer = () => {
-	let nextIdx = curIdx + 1 == servers.length ? 0 : curIdx + 1;
+	let nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
 	console.log(logtime(), "Trying server: " + curServer);
 	socket.close();
 	socket = io.connect(protocol + curServer + domain);
 	setSocketEvents();
+	SecNode.socket = socket;
 }
 
 
