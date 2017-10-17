@@ -229,7 +229,6 @@ class SecNode {
                 console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
 
                 if (op.status == "success") {
-
                     console.log(logtime(), "Challenge submit: " + op.status);
 
                     let resp = {
@@ -243,37 +242,27 @@ class SecNode {
                             resp.memNearEnd = self.memNearEnd
                     }
 
-                    console.log(op);
-                    console.log("txid= " + op.result.txid);
+                    console.log(logtime(), `Challenge result:${op.status} seconds:${op.execution_secs}`);
 
                     resp.ident = self.ident;
-
                     self.chalRunning = false;
                     self.socket.emit("chalresp", resp);
-
                     local.setItem('lastExecSec', (op.execution_secs).toFixed(2));
-
                     self.getBlockHeight(true);
-
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
-
-
                 } else if (op.status == "failed") {
-
-                    console.log(logtime(), "Challenge result: " + op.status)
+                    console.log(logtime(), `Challenge result:${op.status}`)
                     console.log(op.error.message);
 
                     let resp = { "crid": chal.crid, "status": op.status, "error": op.error.message }
                     self.chalRunning = false;
-
                     resp.ident = self.ident;
                     self.socket.emit("chalresp", resp);
 
                     //clear the operation from queue
                     self.zenrpc.z_getoperationresult([opid]);
-
                 } else if (os == 'linux' && op.status == "executing") {
 
                     let last = local.getItem('lastExecSec') || self.defaultMemTime;
@@ -319,7 +308,7 @@ class SecNode {
             );
     }
 
-    collectStats(){
+    collectStats() {
         const self = this;
 
         if (!self.socket.connected) return;
@@ -332,13 +321,13 @@ class SecNode {
                 }
             } else {
                 self.getTLSPeers(null, (err, tlsPeers) => {
-                stats.tlsPeers = tlsPeers;
-                self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
-                let display ="";
-                for (let s in stats){
-                    if(s !== 'tlsPeers') display += `${s}:${stats[s]} `;
-                }
-                console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
+                    stats.tlsPeers = tlsPeers;
+                    self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
+                    let display = "";
+                    for (let s in stats) {
+                        if (s !== 'tlsPeers') display += `${s}:${stats[s]} `;
+                    }
+                    console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
                 });
             }
         })
@@ -371,8 +360,8 @@ class SecNode {
                                 "lastChalBlock": addrBal.lastChalBlock,
                                 "lastExecSec": local.getItem('lastExecSec')
                             }
-                           // console.log(stats)
-                          //  console.log("lastchalblock=" + local.getItem('lastChalBlock'))
+                            // console.log(stats)
+                            //  console.log("lastchalblock=" + local.getItem('lastChalBlock'))
                             if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 
                             if (self.ident) {
@@ -420,7 +409,7 @@ class SecNode {
                 for (let i = 0; i < data.length; i++) {
                     let p = data[i];
                     if (p.inbound == false) {
-                        let ip = p.addr.indexOf(']') != -1 ? p.addr.substr(1, p.addr.indexOf(']')-1) : p.addr.substr(0, p.addr.indexOf(":"));
+                        let ip = p.addr.indexOf(']') != -1 ? p.addr.substr(1, p.addr.indexOf(']') - 1) : p.addr.substr(0, p.addr.indexOf(":"));
                         let peer = { ip, tls: p.tls_verified };
                         peers.push(peer);
                     }
@@ -442,7 +431,7 @@ class SecNode {
         const self = this;
         this.corerpc.getInfo()
             .then((data) => {
-              //  console.log("GETBLOCK set last", setLast)
+                //  console.log("GETBLOCK set last", setLast)
                 if (setLast) local.setItem('lastChalBlock', data.blocks);
                 return data.blocks;
             })
