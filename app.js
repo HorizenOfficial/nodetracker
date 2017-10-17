@@ -43,9 +43,8 @@ if (process.platform == 'linux') {
 }
 
 
+// gather identity
 let taddr;
-
-//check if already registered
 let nodeid = local.getItem('nodeid') || null;
 let fqdn = local.getItem('fqdn') || null;
 if (fqdn) fqdn = fqdn.trim();
@@ -53,6 +52,7 @@ let stkaddr = local.getItem('stakeaddr').trim();
 let ident = { "nid": nodeid, "stkaddr": stkaddr, "fqdn": fqdn };
 
 let initTimer;
+let returningHome = false;
 
 const initialize = () => {
 	// check connectivity by getting the t_address.
@@ -112,7 +112,6 @@ const initialize = () => {
 					});
 				})
 				return
-
 			})
 		}
 	});
@@ -127,7 +126,8 @@ const setSocketEvents = () => {
 	});
 	
 	socket.on('disconnect', () => {
-		//wait 3 minutes for current to be available
+		if (returningHome) return
+		//wait  for current to be available
 		console.log(logtime(), 'Lost connection to ' + curServer)
 		failoverTimer = setInterval(() => {
 			switchServer()
@@ -137,11 +137,13 @@ const setSocketEvents = () => {
 	socket.on('returnhome', () => {
 		curServer = home;
 		curIdx = servers.indexOf(home);
+		returningHome = true;
 		console.log(logtime(), `Returning to home server ${curServer}.`);
 		socket.close();
 		socket = io(protocol + curServer + domain, { forceNew: true });
 		setSocketEvents();
 		SecNode.socket = socket;
+		returningHome = false;
 	})
 
 	socket.on('msg', (msg) => {
