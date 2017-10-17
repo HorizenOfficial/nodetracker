@@ -13,14 +13,14 @@ if (local.length == 0) {
 }
 
 // host names without domain
-const servers = [local.getItem('servers')]; 
+const servers = local.getItem('servers').split(',');
 const home = local.getItem('home');
 if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue.")
 let curIdx = servers.indexOf(home);
 let curServer = home;
 const protocol = `${init.protocol}://`;
 const domain = `.${init.domain}`;
-let socket = io(protocol + curServer + domain);
+let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 
 //get cpu config
@@ -49,8 +49,8 @@ let taddr;
 let nodeid = local.getItem('nodeid') || null;
 let fqdn = local.getItem('fqdn') || null;
 if (fqdn) fqdn = fqdn.trim();
-let stkaddr =  local.getItem('stakeaddr').trim();
-let ident = { "nid": nodeid, "stkaddr":stkaddr, "fqdn": fqdn };
+let stkaddr = local.getItem('stakeaddr').trim();
+let ident = { "nid": nodeid, "stkaddr": stkaddr, "fqdn": fqdn };
 
 let initTimer;
 
@@ -102,16 +102,16 @@ const initialize = () => {
 				console.log(result.addr)
 
 				ident.email = local.getItem('email');
-				ident.con = {home:home, cur:curServer}
-				SecNode.getNetworks(null, (err, nets)=>{
+				ident.con = { home: home, cur: curServer }
+				SecNode.getNetworks(null, (err, nets) => {
 					ident.nets = nets;
-					socket.emit('initnode', ident, ()=>{
+					socket.emit('initnode', ident, () => {
 						//only pass email and nets on init.  
 						delete ident.email;
 						delete ident.nets;
 					});
 				})
-				return 
+				return
 
 			})
 		}
@@ -119,88 +119,97 @@ const initialize = () => {
 
 }
 
-socket.on('connect', () => {
+const setSocketEvents = () => {
+	socket.on('connect', () => {
+		console.log(logtime(), `Connected to server ${curServer}. Initializing...`);
+		initialize();
+		if (failoverTimer) clearInterval(failoverTimer);
+	});
+	
+	socket.on('disconnect', () => {
+		//wait 3 minutes for current to be available
+		console.log(logtime(), 'Lost connection to ' + curServer)
+		failoverTimer = setInterval(() => {
+			switchServer()
+		}, 70000);
+	});
 
-	console.log(logtime(), `Connected to node ${curServer}. Initializing...`);
-	initialize();
-	if (failoverTimer) clearInterval(failoverTimer);
+	socket.on('returnhome', () => {
+		curServer = home;
+		curIdx = server.indexOf(home);
+		console.log(logtime(), `Returning to home server ${curServer}.`);
+		socket.close();
+		socket = io(protocol + curServer + domain, { forceNew: true });
+		setSocketEvents();
+	})
 
-});
+	socket.on('msg', (msg) => {
+		console.log(logtime(), msg);
+	});
 
-socket.on('disconnect', () => {
-	//wait 3 minutes for current to be available
-	console.log(logtime(), 'Lost connection to ' + curServer)
-	failoverTimer = setInterval(()=>{
-		switchServer()
-	}, 180000);
-});
+	socket.on("action", (data) => {
 
-socket.on('returnhome', () =>{
-	curServer = home;
-	curIdx = server.indexOf(home);
-	socket.close();
-	socket = io(protocol + curServer + domain);
-	console.log(logtime(), `Returning to home server ${curServer}.`);
-})
+		switch (data.action) {
+			case "set nid":
+				local.setItem("nodeid", data.nid);
+				break;
 
-
-socket.on('msg', (msg) => {
-	console.log(logtime(), msg);
-});
-
-socket.on("action", (data) => {
-
-	switch (data.action) {
-		case "set nid":
-			local.setItem("nodeid", data.nid);
-			break;
-
-		case 'get stats':
-			SecNode.getStats((err, stats) => {
-				if (err) {
-					if (ident) {
-						socket.emit("node", { type: "down", ident: ident });
+			case 'get stats':
+				SecNode.getStats((err, stats) => {
+					if (err) {
+						if (ident) {
+							socket.emit("node", { type: "down", ident: ident });
+						}
+					} else {
+						socket.emit("node", { type: "stats", stats: stats, ident: ident });
 					}
-				} else {
-					socket.emit("node", { type: "stats", stats: stats, ident: ident });
-				}
 
-			});
-			console.log(logtime(), "send stats")
-			break;
+				});
+				console.log(logtime(), "send stats")
+				break;
 
-		case 'get config':
-			SecNode.getConfig(data, poolver, hw);
-			break;
+			case 'get config':
+				SecNode.getConfig(data, poolver, hw);
+				break;
 
-		case 'challenge':
-			SecNode.execChallenge(data.chal);
-			break;
+			case 'challenge':
+				SecNode.execChallenge(data.chal);
+				break;
 
-		case 'networks':
-			SecNode.getNets(data);
-			break;
-	}
-})
+			case 'networks':
+				SecNode.getNets(data);
+				break;
+		}
+	})
+}
+setSocketEvents();
 
 const logtime = () => {
 	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
 
-const switchServer = () =>{
-	let nextIdx = curIdx + 1 == servers.length ? 0 : curIdx +1;
+const switchServer = () => {
+	let nextIdx = curIdx + 1 == servers.length ? 0 : curIdx + 1;
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
 	console.log(logtime(), "Trying server: " + curServer);
-	socket.close();
-	socket = io(protocol + curServer + domain);
+	//socket.close();
+	socket = io.connect(protocol + curServer + domain);
+	setSocketEvents();
 }
 
 
 const conCheck = () => {
 	setInterval(() => {
-		if (!socket.connected) console.log(logtime(), "No connection to server");
-	}, 60000
+		if (!socket.connected) {
+			console.log(logtime(), `No connection to server ${curServer}. Will retry.`);
+			if (!failoverTimer) {
+				failoverTimer = setInterval(() => {
+					switchServer()
+				}, 61000);
+			}
+		}
+	}, 30000
 	)
 }
 
