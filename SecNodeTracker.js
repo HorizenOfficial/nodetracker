@@ -343,7 +343,11 @@ class SecNode {
                 self.getTLSPeers(null, (err, tlsPeers) => {
                 stats.tlsPeers = tlsPeers;
                 self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
-                console.log(logtime(), "stat check");
+                let display ="";
+                for (let s in stats){
+                    if(s !== 'tlsPeers') display += `${s}:${stats[s]} `;
+                }
+                console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
                 });
             }
         })
@@ -376,7 +380,7 @@ class SecNode {
                                 "lastChalBlock": addrBal.lastChalBlock,
                                 "lastExecSec": local.getItem('lastExecSec')
                             }
-                            console.log(stats)
+                           // console.log(stats)
                           //  console.log("lastchalblock=" + local.getItem('lastChalBlock'))
                             if (addrBal.bal < self.minChalBal && addrBal.valid) console.log(logtime(), "Low challenge balance. " + addrBal.bal)
 

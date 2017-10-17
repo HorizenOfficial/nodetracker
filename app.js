@@ -193,7 +193,7 @@ const switchServer = () => {
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
 	console.log(logtime(), "Trying server: " + curServer);
-	//socket.close();
+	socket.close();
 	socket = io.connect(protocol + curServer + domain);
 	setSocketEvents();
 }
@@ -202,7 +202,7 @@ const switchServer = () => {
 const conCheck = () => {
 	setInterval(() => {
 		if (!socket.connected) {
-			console.log(logtime(), `No connection to server ${curServer}. Will retry.`);
+			console.log(logtime(), `No connection to server ${curServer}. Retry.`);
 			if (!failoverTimer) {
 				failoverTimer = setInterval(() => {
 					switchServer()
