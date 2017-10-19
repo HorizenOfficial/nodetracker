@@ -128,7 +128,7 @@ const setSocketEvents = () => {
 	socket.on('disconnect', () => {
 		if (returningHome) return
 		//wait  for current to be available
-		console.log(logtime(), 'Lost connection to ' + curServer)
+		console.log(logtime(), 'No connection to ' + curServer)
 		failoverTimer = setInterval(() => {
 			switchServer()
 		}, 70000);
