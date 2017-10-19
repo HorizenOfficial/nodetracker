@@ -11,48 +11,57 @@ let servers;
 let regList;
 let regions = [];
 let regPrompt = '';
-http.get(init.lookupServer, (res) => {
-    const { statusCode } = res;
-    const contentType = res.headers['content-type'];
+let regionServer;
+let url = init.lookupServer;
+const getSetupInfo = (url, cb) => {
+    http.get(url, (res) => {
+        const { statusCode } = res;
+        const contentType = res.headers['content-type'];
 
-    let error;
-    if (statusCode !== 200) {
-        error = new Error('Request Failed.\n' +
-            `Status Code: ${statusCode}`);
-    } else if (!/^application\/json/.test(contentType)) {
-        error = new Error('Invalid content-type.\n' +
-            `Expected application/json but received ${contentType}`);
-    }
-    if (error) {
-        console.error(error.message);
-        // consume response data to free up memory
-        res.resume();
-        return;
-    }
-
-    res.setEncoding('utf8');
-    let rawData = '';
-    res.on('data', (chunk) => { rawData += chunk; });
-    res.on('end', () => {
-        try {
-            const parsedData = JSON.parse(rawData);
-            //  console.log(parsedData);
-            servers = parsedData.servers;
-            regList = parsedData.regions;
-            regList.forEach((r) => {
-                regPrompt += `${r[1]}(${r[0]}) `;
-                regions.push(r[0]);
-            });
-            localStorage.setItem('servers', servers);
-        } catch (e) {
-            console.error(e.message);
+        let error;
+        if (statusCode === 301) {
+            return getSetupInfo(res.headers.location, cb);
         }
+        if (statusCode !== 200) {
+            error = new Error('Request Failed.\n' +
+                `Status Code: ${statusCode}`);
+        } else if (!/^application\/json/.test(contentType)) {
+            error = new Error('Invalid content-type.\n' +
+                `Expected application/json but received ${contentType}`);
+        }
+        if (error) {
+            console.error(error.message);
+            // consume response data to free up memory
+            res.resume();
+            return;
+        }
+
+        res.setEncoding('utf8');
+        let rawData = '';
+        res.on('data', (chunk) => { rawData += chunk; });
+        res.on('end', () => {
+            try {
+                const data = JSON.parse(rawData);
+                //  console.log(parsedData);
+                regionServer = data.region;
+                servers = data.servers;
+                regList = data.regions;
+                regList.forEach((r) => {
+                    regPrompt += `${r[1]}(${r[0]}) `;
+                    regions.push(r[0]);
+                });
+                localStorage.setItem('servers', servers);
+                cb(null, 'done');
+            } catch (e) {
+                console.error(e.message);
+            }
+        });
+    }).on('error', (e) => {
+        console.error(`Got error: ${e.message}`);
+        console.error('Can not complete setup.')
+        process.exit();
     });
-}).on('error', (e) => {
-    console.error(`Got error: ${e.message}`);
-    console.error('Can not complete setup.')
-    process.exit();
-});
+}
 
 const validator = (value) => {
     if (value.length !== 35) {
@@ -95,53 +104,60 @@ let addr = localStorage.getItem('stakeaddr') || null;
 let email = localStorage.getItem('email') || null;
 let fqdn = localStorage.getItem('fqdn') || null;
 let ipv = localStorage.getItem('ipv') || 4;
-let region = localStorage.getItem('region') || null;
 
-let msg1 = addr ? ' (Existing: ' + addr + '):' : ':';
-let msg2 = email ? ' (Existing: ' + email + '):' : ':';
-let msg3 = fqdn ? ' (Existing: ' + fqdn + '):' : ':';
-let msg4 = ipv ? ' (Existing: ' + ipv + '):' : ':';
-let msg5 = region ? ' (Existing: ' + region + '):' : ':';
+getSetupInfo(url, (err,result) => {
+    if(err) {
+        console.error('Can not complete setup.', err)
+        process.exit();
+    }
 
-//Prompt user for values 
-promptly
-    .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
-    .then((value) => {
-        localStorage.setItem('stakeaddr', value);
-        promptly.prompt('Alert email address' + msg2, { 'default': email })
-            .then((value) => {
-                localStorage.setItem('email', value);
-                promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
-                    .then((value) => {
-                        localStorage.setItem('fqdn', value);
-                        promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
-                            .then((value) => {
-                                localStorage.setItem('ipv', value);
-                                promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
-                                    .then((value) => {
-                                        setRegAndServer(value);
-                                        getRPC();
-                                    })
-                                    .catch((err) => {
-                                        console.log('ERROR: Region code ', err.message);
-                                    });
-                            })
-                            .catch((err) => {
-                                console.log('ERROR: ip address ', err.message);
-                            });
-                    })
-                    .catch((err) => {
-                        console.log('ERROR: hostname ', err.message);
-                    });
-            })
-            .catch((err) => {
-                console.log('ERROR: email address ', err.message);
-            });
-    })
-    .catch((err) => {
-        console.log('ERROR: stake addr ', err.message);
-    });
+    let region = localStorage.getItem('region') || regionServer;
 
+    let msg1 = addr ? ' (Existing: ' + addr + '):' : ':';
+    let msg2 = email ? ' (Existing: ' + email + '):' : ':';
+    let msg3 = fqdn ? ' (Existing: ' + fqdn + '):' : ':';
+    let msg4 = ipv ? ' (Existing: ' + ipv + '):' : ':';
+    let msg5 = region ? ' (Default: ' + region + '):' : ':';
+
+    //Prompt user for values 
+    promptly
+        .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
+        .then((value) => {
+            localStorage.setItem('stakeaddr', value);
+            promptly.prompt('Alert email address' + msg2, { 'default': email })
+                .then((value) => {
+                    localStorage.setItem('email', value);
+                    promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
+                        .then((value) => {
+                            localStorage.setItem('fqdn', value);
+                            promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
+                                .then((value) => {
+                                    localStorage.setItem('ipv', value);
+                                    promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
+                                        .then((value) => {
+                                            setRegAndServer(value);
+                                            getRPC();
+                                        })
+                                        .catch((err) => {
+                                            console.log('ERROR: Region code ', err.message);
+                                        });
+                                })
+                                .catch((err) => {
+                                    console.log('ERROR: ip address ', err.message);
+                                });
+                        })
+                        .catch((err) => {
+                            console.log('ERROR: hostname ', err.message);
+                        });
+                })
+                .catch((err) => {
+                    console.log('ERROR: email address ', err.message);
+                });
+        })
+        .catch((err) => {
+            console.log('ERROR: stake addr ', err.message);
+        });
+});
 const setRegAndServer = (region) => {
     localStorage.setItem('region', region);
     let found = false;
