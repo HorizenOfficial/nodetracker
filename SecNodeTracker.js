@@ -6,7 +6,7 @@ const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
 let host = local.getItem('rpcallowip') || local.getItem('rpcbind');
-if (!host) host = '127.0.0.1';
+if (!host && local.getItem('ipv') == 4) host = '127.0.0.1';
 
 const cfg = {
     host: host,
