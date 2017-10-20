@@ -284,8 +284,8 @@ class SecNode {
             });
     }
 
-    getConfig(req, poolver, hw) {
-        //   node version,  poolver, and hw
+    getConfig(req, trkver, hw) {
+        //   node version,  trkver, and hw
         const self = this;
         this.corerpc.getInfo()
             .then((data) => {
@@ -298,7 +298,7 @@ class SecNode {
 
                 if (!self.ident.nid && req.nid) self.ident.nid = req.nid;
 
-                let config = { node: node, poolver: poolver, hw: hw }
+                let config = { node: node, trkver: trkver, hw: hw }
                 self.socket.emit("node", { type: "config", ident: self.ident, config: config });
 
             })

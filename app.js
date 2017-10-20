@@ -29,8 +29,8 @@ console.log("CPU " + cpus[0].model + "  cores=" + cpus.length + "  speed=" + cpu
 const hw = { "CPU": cpus[0].model, "cores": cpus.length, "speed": cpus[0].speed }
 
 //self version
-const poolver = pkg.version;
-console.log("Tracker app version: " + poolver);
+const trkver = pkg.version;
+console.log("Tracker app version: " + trkver);
 
 
 //check memory
@@ -172,7 +172,7 @@ const setSocketEvents = () => {
 				break;
 
 			case 'get config':
-				SecNode.getConfig(data, poolver, hw);
+				SecNode.getConfig(data, trkver, hw);
 				break;
 
 			case 'challenge':
