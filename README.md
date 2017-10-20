@@ -19,8 +19,8 @@ These are upgrade and migration instructions.  If you are doing a new install se
 This version connects to new zensystem.io servers (NOT devtracksys.secnodes.com).
 Setup needs to be re-run.
 
-  1. Delete the following files tracker secnodetracker/config folder(unless you want to reinput):
-      nodeid, lastChalBlock, lastExecSec
+  1. Delete the following files in the secnodetracker/config folder(unless you want to reinput):
+      nodeid, serverurl, lastChalBlock, lastExecSec
 
   2. From within the secnodetracker folder. Change repositories then check if it matches using the remote command.
    * git remote set-url origin https://github.com/ZencashOfficial/secnodetracker.git
@@ -31,14 +31,14 @@ Setup needs to be re-run.
    * git checkout dev  (<-- be sure to checkout dev branch)
    * git pull
 
-  3. Run the tracker setup and pay attention to the region Change if it is not correct:
+  3. Run the tracker setup and pay attention to the region. Enter another if it is not correct:
     * node setup
 
-  4. Stop the tracker and restart it.  The tracker should register and connect to the new server.
+  4. Stop the tracker and restart it.  The tracker should connect to the new server and register.
 
 
 ## Version Notes
-This is Beta - Testnet and will be on testnet. It will not work on the devtracksys.secnodes.com server.
+This is Beta-Testnet and remains on testnet. It will not work on the devtracksys.secnodes.com server.
 
 
 ## New Installation
@@ -46,7 +46,7 @@ If you have followed Part 1, Part 2, and Part 2.5 of creating a Secure Node, you
 
 You will need about 1 zen in the node wallet in a private address. Send multiple small amounts (0.2 each). The private z-address needs to be created manually if not present (zen-cli z_getnewaddress).  If already present the balance is checked when the app starts and the address is displayed on the tracker console.
 
-You will also need a t-address in a wallet (preferrably not on the node) with at least 42 zen so the node will register on the server. This is not the address shown on the console (the t-address on the console is used as the node's identity). 
+You will also need a t-address in a wallet (preferrably not on the node) with at least 42 zen so the node will register on the server. This is not the address shown on the console (the t-address on the console is used as the node's identity). If you need some testnet zen (znt) please ask in the channel and post your t-address (starts zt): someone will send some to you.
 
 ### Install npm and Node.js
 Login to your secure node.  This will install NPM and 8.6.0 or above of Node.js (a javascript vm). 
@@ -75,12 +75,12 @@ You will need your staking address (with at least 42zen) and an email address fo
 
 ### Start the tracking app
 
-  * node app.js
+  * node app
  
 Follow any instructions shown on the console.  Rerun setup if needed: it will remember your previous values. 
 Use Ctrl-C to break out of the app. NOTE:  There should only be 1 instance of the tracking app running at a time.
  
-Check your node on your home server or https://secnodes.zensystem.io
+Check your node on your home server or https://securenodes.zensystem.io
   
 Report any issues to @devman in the zencash slack #securenodes channel. 
 
