@@ -30,9 +30,10 @@ const getSetupInfo = (url, cb) => {
                 `Expected application/json but received ${contentType}`);
         }
         if (error) {
-            console.error(error.message);
+            console.log('Unable to connect to server for setup data.')
             // consume response data to free up memory
             res.resume();
+            cb(error.message);
             return;
         }
 
@@ -54,6 +55,7 @@ const getSetupInfo = (url, cb) => {
                 cb(null, 'done');
             } catch (e) {
                 console.error(e.message);
+                cb(e.message)
             }
         });
     }).on('error', (e) => {
@@ -105,7 +107,7 @@ let email = localStorage.getItem('email') || null;
 let fqdn = localStorage.getItem('fqdn') || null;
 let ipv = localStorage.getItem('ipv') || 4;
 
-getSetupInfo(url, (err,result) => {
+getSetupInfo(url, (err, result) => {
     if(err) {
         console.error('Can not complete setup.', err)
         process.exit();
