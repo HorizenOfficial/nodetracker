@@ -6,7 +6,7 @@ const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
 let host = local.getItem('rpcallowip') || local.getItem('rpcbind');
-if (!host && local.getItem('ipv') == 4) host = '127.0.0.1';
+if (!host || local.getItem('ipv') == 6) host = 'localhost';
 
 const cfg = {
     host: host,
@@ -141,7 +141,15 @@ class SecNode {
         self.crid = chal.crid
         self.corerpc.getBlockHash(chal.blocknum, (err, hash) => {
 
-            if (err) return console.log(err)
+            if (err) {
+                let resp = { "crid": chal.crid, "status": "failed", "error": "unable to get blockhash from zen" }
+                self.chalRunning = false;
+                resp.ident = self.ident;
+                self.socket.emit("chalresp", resp);
+                console.log(logtime(), `Challenge Error: unable to get blockhash for challenge id${chal.crid} block ${chal.blocnum}`);
+                console.log(err);
+                return 
+            }
 
             self.corerpc.getBlock(hash, (err, block) => {
 
