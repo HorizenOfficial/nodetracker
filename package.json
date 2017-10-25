@@ -1,6 +1,6 @@
 {
   "name": "zensecnodetracker",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "zencash secure node tracking application",
   "main": "app.js",
   "scripts": {
