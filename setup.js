@@ -123,43 +123,33 @@ getSetupInfo(url, (err, result) => {
 
     //Prompt user for values 
     promptly
-        .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
-        .then((value) => {
-            localStorage.setItem('stakeaddr', value);
-            promptly.prompt('Alert email address' + msg2, { 'default': email })
-                .then((value) => {
-                    localStorage.setItem('email', value);
-                    promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
-                        .then((value) => {
-                            localStorage.setItem('fqdn', value);
-                            promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
-                                .then((value) => {
-                                    localStorage.setItem('ipv', value);
-                                    promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
-                                        .then((value) => {
-                                            setRegAndServer(value);
-                                            getRPC();
-                                        })
-                                        .catch((err) => {
-                                            console.log('ERROR: Region code ', err.message);
-                                        });
-                                })
-                                .catch((err) => {
-                                    console.log('ERROR: ip address ', err.message);
-                                });
-                        })
-                        .catch((err) => {
-                            console.log('ERROR: hostname ', err.message);
-                        });
-                })
-                .catch((err) => {
-                    console.log('ERROR: email address ', err.message);
-                });
-        })
-        .catch((err) => {
-            console.log('ERROR: stake addr ', err.message);
-        });
+    .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
+    .then((value) => {
+        localStorage.setItem('stakeaddr', value);
+        return promptly.prompt('Alert email address' + msg2, { 'default': email })
+    })
+    .then((value) => {
+        localStorage.setItem('email', value);
+        return promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
+    })
+    .then((value) => {
+        localStorage.setItem('fqdn', value);
+        return promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
+    })
+    .then((value) => {
+        localStorage.setItem('ipv', value);
+        return promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
+    })
+    .then((value) => {
+        setRegAndServer(value);
+        getRPC();
+    })
+    .catch((err) => {
+        console.log('ERROR: ', err.message);
+    });
+
 });
+
 const setRegAndServer = (region) => {
     localStorage.setItem('region', region);
     let found = false;
