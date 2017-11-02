@@ -5,8 +5,8 @@ const fs = require('fs');
 const Client = require('bitcoin-core');
 const Zcash = require('zcash');
 
-let host = local.getItem('rpcallowip') || local.getItem('rpcbind');
-if (!host || local.getItem('ipv') == 6) host = 'localhost';
+let host = local.getItem('rpchost') || local.getItem('rpcbind');
+if (!host) host = 'localhost';
 
 const cfg = {
     host: host,
@@ -15,8 +15,7 @@ const cfg = {
         enabled: false
     },
     username: local.getItem('rpcuser'),
-    password: local.getItem('rpcpassword'),
-    hostname: local.getItem('rpcbind'),
+    password: local.getItem('rpcpassword')
 }
 
 const errmsg = "Unable to connect to zend. Please check the zen rpc settings and ensure zend is running";
@@ -28,7 +27,6 @@ class SecNode {
         this.corerpc = corerpc;
         this.zenrpc = zenrpc;
         this.statsInterval = 1000 * 60 * 6;
-
         this.statsTimer = null;
         this.statsLoop = () => {
             this.collectStats();
@@ -42,13 +40,24 @@ class SecNode {
         this.fee = 0.0001;
         this.minChalBal = .01;
         this.defaultMemTime = 45;
-
         this.memBefore = {};
         this.memNearEnd = {};
-
         this.waiting = false;
-
+        this.zenDownInterval = 1000 * 61;
+        this.zenDownTimer = null;
+        this.zenDownLoop = () => {
+            this.getPrimaryAddress((err, amt) => {
+                if (err) {
+                    console.error(logtime(), err);
+                } else {
+                    console.log(logtime(), 'Zen connected.');
+                    clearInterval(this.zenDownTimer);
+                    this.collectStats();
+                }
+            });
+        };
     }
+
 
     static auto() {
         let corerpc = new Client(cfg);
@@ -87,7 +96,7 @@ class SecNode {
             .then((result) => {
 
                 if (result.length == 0) {
-                    console.log("No private address found. Please create one and send at least 1 ZEN for challenges");
+                    console.log("No private address found. Please create one using zen_cli z_getnewaddress and send at least 1 ZEN for challenges split into 4 or more transactions");
                     return cb(null)
                 }
 
@@ -146,10 +155,11 @@ class SecNode {
                 self.chalRunning = false;
                 resp.ident = self.ident;
                 self.socket.emit("chalresp", resp);
-                console.log(logtime(), `Challenge Error: unable to get blockhash for challenge id${chal.crid} block ${chal.blocnum}`);
-                console.log(err);
-                return 
+                console.error(logtime(), `Challenge Error: unable to get blockhash for challenge id ${chal.crid} block ${chal.blocknum}`);
+                if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
+                return
             }
+            if (self.zenDownTimer) clearInterval(self.zenDownTimer);
 
             self.corerpc.getBlock(hash, (err, block) => {
 
@@ -157,12 +167,11 @@ class SecNode {
                 let amts = [{ "address": chal.sendto, "amount": self.amt, "memo": msgBuff.toString('hex') }];
 
                 self.getAddrWithBal((err, result) => {
-                    if (err) return console.log(err);
+                    if (err) return console.error(err);
 
                     let zaddr = result.addr;
                     if (result.bal == 0) {
                         console.log(logtime(), "Challenge private address balance is 0 at the moment. Cannot perform challenge");
-                        //console.log(logtime(), "Please send .5 zen to " + zaddr);
                     }
 
                     console.log('Using ' + zaddr + ' for challenge. bal=' + result.bal)
@@ -186,8 +195,8 @@ class SecNode {
 
                                 let resp = { "crid": chal.crid, "status": "error", "error": err }
                                 resp.ident = self.ident;
-                                console.log(logtime(), "Challenge: unable to create and send transaction.");
-                                console.log(err);
+                                console.error(logtime(), "Challenge: unable to create and send transaction.");
+                                console.error(err);
                                 self.socket.emit("chalresp", resp)
                             }
                             );
@@ -285,8 +294,8 @@ class SecNode {
             .catch(err => {
 
                 self.chalRunning = false;
-                console.log("challenge error");
-                console.log(err);
+                console.error("challenge error");
+                console.error(err);
                 clearInterval(self.opTimer);
                 return
             });
@@ -311,7 +320,7 @@ class SecNode {
 
             })
             .catch(err => {
-                console.log("get config", err);
+                console.error("Get config ", err);
             }
             );
     }
@@ -319,16 +328,24 @@ class SecNode {
     collectStats() {
         const self = this;
 
-        if (!self.socket.connected) return;
+        if (!self.socket.connected || self.waiting) return;
+        if (!self.ident.nid) {
+            console.log(logtime(), 'Unable to collect stats without a nodeid.');
+            return;
+        }
 
-        this.getStats((err, stats) => {
+        self.getStats((err, stats) => {
             if (err) {
-                console.log(logtime(), "Stat check failed. " + err);
+                console.error(logtime(), "Stat check failed. " + err);
                 if (self.ident) {
                     self.socket.emit("node", { type: "down", ident: self.ident });
                 }
+                if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
             } else {
-                self.getTLSPeers(null, (err, tlsPeers) => {
+                if (self.zenDownTimer) clearInterval(self.zenDownTimer);
+                self.getTLSPeers((err, tlsPeers) => {
+                    if (err) console.log(logtime(), "Unable to get peers from zen. " + err);
+
                     stats.tlsPeers = tlsPeers;
                     self.socket.emit("node", { type: "stats", stats: stats, ident: self.ident });
                     let display = "";
@@ -384,8 +401,7 @@ class SecNode {
             .catch(err => {
 
                 let msg = err.cause ? err.cause : err.message;
-                console.log(logtime(), "getStats " + msg);
-                //console.log(err);
+                console.error(logtime(), 'Stat check: unable to access zen.');
                 return cb(err);
             });
     }
@@ -403,17 +419,16 @@ class SecNode {
                 }
             })
             .catch(err => {
-                console.log(logtime(), 'get networks ' + err);
+                console.error(logtime(), 'get networks ' + err);
             }
             );
     }
 
-    getTLSPeers(req, cb) {
+    getTLSPeers(cb) {
         const self = this;
         this.corerpc.getPeerInfo()
             .then((data) => {
                 let peers = [];
-                if (!self.ident.nid && req.nid) self.ident.nid = req.nid;
                 for (let i = 0; i < data.length; i++) {
                     let p = data[i];
                     if (p.inbound == false) {
@@ -422,24 +437,20 @@ class SecNode {
                         peers.push(peer);
                     }
                 }
-                if (req) {
-                    self.socket.emit("node", { type: "peers", ident: self.ident, peers });
-                } else {
-                    cb(null, peers)
-                }
+                cb(null, peers)
             })
             .catch(err => {
-                console.log(logtime(), 'get peers ' + err);
+                console.error(logtime(), 'Zen - can not get peers');
+                cb(err)
             }
             );
     }
 
     getBlockHeight(setLast) {
-
         const self = this;
         this.corerpc.getInfo()
             .then((data) => {
-                //  console.log("GETBLOCK set last", setLast)
+
                 if (setLast) local.setItem('lastChalBlock', data.blocks);
                 return data.blocks;
             })
