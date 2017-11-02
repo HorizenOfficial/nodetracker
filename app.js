@@ -151,7 +151,6 @@ const setSocketEvents = () => {
 	});
 
 	socket.on("action", (data) => {
-		console.log(data);
 		switch (data.action) {
 			case "set nid":
 				local.setItem("nodeid", data.nid);
