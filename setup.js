@@ -19,7 +19,7 @@ const getSetupInfo = (url, cb) => {
         const contentType = res.headers['content-type'];
 
         let error;
-        if (statusCode === 301) {
+        if (statusCode === 301 || statusCode === 302) {
             return getSetupInfo(res.headers.location, cb);
         }
         if (statusCode !== 200) {
@@ -108,7 +108,7 @@ let fqdn = localStorage.getItem('fqdn') || null;
 let ipv = localStorage.getItem('ipv') || 4;
 
 getSetupInfo(url, (err, result) => {
-    if(err) {
+    if (err) {
         console.error('Can not complete setup.', err)
         process.exit();
     }
@@ -126,40 +126,29 @@ getSetupInfo(url, (err, result) => {
         .prompt('Staking transparent address' + msg1, { 'default': addr, 'validator': validator })
         .then((value) => {
             localStorage.setItem('stakeaddr', value);
-            promptly.prompt('Alert email address' + msg2, { 'default': email })
-                .then((value) => {
-                    localStorage.setItem('email', value);
-                    promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn })
-                        .then((value) => {
-                            localStorage.setItem('fqdn', value);
-                            promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator })
-                                .then((value) => {
-                                    localStorage.setItem('ipv', value);
-                                    promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator })
-                                        .then((value) => {
-                                            setRegAndServer(value);
-                                            getRPC();
-                                        })
-                                        .catch((err) => {
-                                            console.log('ERROR: Region code ', err.message);
-                                        });
-                                })
-                                .catch((err) => {
-                                    console.log('ERROR: ip address ', err.message);
-                                });
-                        })
-                        .catch((err) => {
-                            console.log('ERROR: hostname ', err.message);
-                        });
-                })
-                .catch((err) => {
-                    console.log('ERROR: email address ', err.message);
-                });
+            return promptly.prompt('Alert email address' + msg2, { 'default': email });
+        })
+        .then((value) => {
+            localStorage.setItem('email', value);
+            return promptly.prompt('Full hostname (FQDN) used in cert. example: z1.mydomain.com ' + msg3, { 'default': fqdn });
+        })
+        .then((value) => {
+            localStorage.setItem('fqdn', value);
+            return promptly.prompt('IP address version used for connection - 4 or 6' + msg4, { 'default': ipv, 'validator': ipvalidator });
+        })
+        .then((value) => {
+            localStorage.setItem('ipv', value);
+            return promptly.choose('Region code - ' + regPrompt + msg5, regions, { 'default': region, 'validator': regvalidator });
+        })
+        .then((value) => {
+            setRegAndServer(value);
+            getRPC();
         })
         .catch((err) => {
-            console.log('ERROR: stake addr ', err.message);
+            console.error('ERROR: ', err.message);
         });
 });
+
 const setRegAndServer = (region) => {
     localStorage.setItem('region', region);
     let found = false;
@@ -171,7 +160,7 @@ const setRegAndServer = (region) => {
             break;
         }
     }
-    if (!found) console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue if it persists.");
+    if (!found) console.error("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue if it persists.");
 }
 
 //get zen rpc config
@@ -204,26 +193,24 @@ const getRPC = () => {
 
     let config = {};
     let testnet = false;
+    let ipfound = false;
     lines.forEach(line => {
-        if (line.indexOf('#') == -1 && line.indexOf("rpc") == 0) {
-
+        line = line.trim();
+        if (line.indexOf('#') === -1 && line.indexOf("rpc") === 0) {
             let idx = line.indexOf("=");  //don't use split since user or pw could have =
             let key = line.substring(0, idx);
             let val = line.substring(idx + 1);
-            if (key == 'rpcallowip') {
-                if (localStorage.getItem('ipv') == 6) {
-                    //if ipv6 leave rpcallowip blank to prevent errors
-                    localStorage.setItem(key, '');
-                }
-                else {
-                    localStorage.setItem(key, val);
-                }
+            if (key === 'rpcallowip') {
+                ipfound = true;
+                localStorage.setItem('rpchost', val);
             } else {
                 localStorage.setItem(key, val);
             }
         }
-        if (line == 'testnet=1') testnet = true;
+        if (line === 'testnet=1') testnet = true;
     });
+
+    if (!ipfound) localStorage.setItem('rpchost', 'localhost');
 
     if (!testnet)
         return console.log("This version should only be run on testnet.  Please reconfigure zen.conf with testnet=1");
