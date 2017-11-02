@@ -3,7 +3,7 @@
 
 This is installed on a Secure Node to allow it to communicate with the zensystem.io tracking server. It provides data to the server about the Secure Node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. This runs completely separate from the zen node network.  
 
-## UPDATE 0.0.8 - BETA-Testnet
+## UPDATE 0.0.9 - BETA-Testnet
  - Added region selection in the setup
  - Added failover to other servers
  - Repository moved to zencashofficial
@@ -59,7 +59,7 @@ Log into your secure node.  The following installs the NPM and Node.js (a javasc
 
   * sudo apt-get install npm
   * sudo npm install -g n
-  * sudo n latest
+  * sudo n 8.9
 
 ### Clone this repository
 If you followed the Guides you should have a ~/zencash folder with the zen folder in it. 
