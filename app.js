@@ -143,6 +143,7 @@ const setSocketEvents = () => {
 		socket = io(protocol + curServer + domain, { forceNew: true });
 		setSocketEvents();
 		SecNode.socket = socket;
+		ident.con.cur = curServer;
 		returningHome = false;
 	})
 
@@ -181,6 +182,10 @@ const setSocketEvents = () => {
 			case 'networks':
 				SecNode.getNets(data);
 				break;
+				
+			case 'changeServer':
+				switchServer(data.server);
+				break;
 		}
 	})
 }
@@ -190,8 +195,13 @@ const logtime = () => {
 	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
 
-const switchServer = () => {
-	let nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
+const switchServer = (server) => {
+	let nextIdx = 0
+	if(server) {
+		nextIdx = servers.indexOf(server);
+	}else{
+		nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
+	}
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
 	console.log(logtime(), "Trying server: " + curServer);
@@ -199,6 +209,7 @@ const switchServer = () => {
 	socket = io.connect(protocol + curServer + domain);
 	setSocketEvents();
 	SecNode.socket = socket;
+	ident.con.cur = curServer;
 }
 
 
