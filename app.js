@@ -5,6 +5,7 @@ const io = require('socket.io-client')
 const os = require('os');
 const pkg = require('./package.json');
 const init = require('./init');
+const md5File = require('md5-file')
 
 //check if setup was run
 if (local.length == 0) {
@@ -42,6 +43,12 @@ if (process.platform == 'linux') {
 	console.log("total memory=" + totmem.toFixed(1) + "GB  free memory=" + freemem.toFixed(1)) + "GB";
 }
 
+//SecureNodeTracker MD5 check
+md5File('SecNodeTracker.js', (err, hash) => {
+  if (err) throw err
+ 
+  console.log(`The MD5 sum of SecNodeTracker.js is: ${hash}`)
+})
 
 // gather identity
 let taddr;
