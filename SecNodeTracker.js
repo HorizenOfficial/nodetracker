@@ -4,6 +4,7 @@ const local = new LocalStorage('./config');
 const fs = require('fs');
 const Client = require('bitcoin-core');
 const Zcash = require('zcash');
+const md5File = require('md5-file');
 
 let host = local.getItem('rpcallowip') || local.getItem('rpcbind');
 if (!host || local.getItem('ipv') == 6) host = 'localhost';
@@ -151,9 +152,18 @@ class SecNode {
                 return 
             }
 
-            self.corerpc.getBlock(hash, (err, block) => {
+             self.corerpc.getBlock(hash, (err, block) => {
+                var unixTime = Math.round((new Date()).getTime() / 1000);
 
-                let msgBuff = new Buffer.from(block.merkleroot);
+                var blockHeight = 123456; // This needs to be changed to a getInfo RPC call.
+
+                //let msgBuff = new Buffer.from(block.merkleroot);
+                let msgBuff = new Buffer.from(block.merkleroot + " " + unixTime + " " + blockHeight);
+                // Debug Info
+                //console.log(block.merkleroot);
+                //console.log(unixTime);
+                //console.log(blockHeight);
+                //console.log(msgBuff);
                 let amts = [{ "address": chal.sendto, "amount": self.amt, "memo": msgBuff.toString('hex') }];
 
                 self.getAddrWithBal((err, result) => {
@@ -366,7 +376,8 @@ class SecNode {
                                 "isValidBal": addrBal.valid,
                                 "queueDepth": count,
                                 "lastChalBlock": addrBal.lastChalBlock,
-                                "lastExecSec": local.getItem('lastExecSec')
+                                "lastExecSec": local.getItem('lastExecSec'),
+                                "SecNodeMD5": md5File.sync('SecNodeTracker.js')
                             }
                             // console.log(stats)
                             //  console.log("lastchalblock=" + local.getItem('lastChalBlock'))
