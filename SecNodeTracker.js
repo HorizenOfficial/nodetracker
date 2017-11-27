@@ -35,7 +35,7 @@ class SecNode {
         this.chalStart = null;
         this.chalRunning = false;
         this.opTimer = null;
-        this.opTimerInterval = 1000 * 10;
+        this.opTimerInterval = 1000 * 2;
         this.amt = 0.0001;
         this.fee = 0.0001;
         this.minChalBal = .01;
@@ -243,7 +243,7 @@ class SecNode {
                 }
 
                 let op = operation[0];
-                console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
+                if(elapsed % 10 === 0) console.log(logtime(), "Elapsed challenge time=" + elapsed + "  status=" + op.status);
 
                 if (op.status == "success") {
                     console.log(logtime(), "Challenge submit: " + op.status);
@@ -252,7 +252,8 @@ class SecNode {
                         "crid": chal.crid,
                         "status": op.status,
                         "txid": op.result.txid,
-                        "execSeconds": op.execution_secs
+                        "execSeconds": op.execution_secs,
+                        "created": op.creation_time
                     }
                     if (os == 'linux') {
                         resp.memBefore = self.memBefore,
