@@ -25,19 +25,22 @@ These are upgrade and migration instructions.  If you are doing a new install se
    2. Remove 'testnet=1' from your zen.conf 
    3. Start zend and let it sync with the main blockchain.
    4. Adjust steps as needed if using monitoring applications.
+   5. Optional: delete the .zen/testnet3 folder to save space
 
    #### Create a z_address for the challenges 
    1. Run: zen-cli z_getnewaddress
    2. Send 1 ZEN split into 4 to 5 separate transactions to that address.
+   3. Optional: this version checks for multiple z_addresses. Create one or more additional and split the 1 ZEN across them.
 
    #### Prepare a stake address
    It is suggested a stake address exists that does not reside on the node.
    1. Identify your stake address or create one in a wallet. It must contain at least 42 ZEN.
   
   #### Check the version of nodejs
-  Run: node -v
-  Suggested version is 8.9.x since it will have long term support.
-  To change: sudo n 8.9
+   1. Run: node -v
+    
+   - Suggested version is 8.9.x since it will have long term support. 
+   To change run: sudo n 8.9
 
    #### Update secnodetracker
   1. Stop the tracker application.
