@@ -4,8 +4,9 @@ const oshome = require('os').homedir();
 const LocalStorage = require('node-localstorage').LocalStorage;
 const localStorage = new LocalStorage('./config');
 const init = require('./init');
-
 const http = require('https');
+
+oshome = process.env.ZEN_HOME || oshome;
 
 let servers;
 let regList;
@@ -212,8 +213,8 @@ const getRPC = () => {
 
     if (!ipfound) localStorage.setItem('rpchost', 'localhost');
 
-    if (!testnet)
-        return console.log("This version should only be run on testnet.  Please reconfigure zen.conf with testnet=1");
+    if (testnet)
+        return console.log("This version should only be run on mainnet.  Please reconfigure zen.conf and remove or comment '#testnet=1'");
 
     console.log("Setup Complete");
 
