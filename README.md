@@ -50,16 +50,16 @@ These are upgrade and migration instructions.  If you are doing a new install se
 
   3. Change to the secnodetracker folder and update the tracker application. 
   This may be '~/zencash/secnodetracker' if the install guides were followed. Run the following commands:
-   * git fetch origin
-   * git checkout master
-   * git pull
+      * git fetch origin
+      * git checkout master
+      * git pull
 
 
   4. If the servers are available, run the tracker setup and follow the prompts.
-    * node setup
+      * node setup
 
   5. If the servers are available, start the tracer app. The tracker should connect to the mainnet servers and register.
-    * node app
+      * node app
 
   When the tracker successfully connects it will indicate it has registered and authenticated.
 
