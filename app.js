@@ -19,7 +19,7 @@ if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running
 let curIdx = servers.indexOf(home);
 let curServer = home;
 const protocol = `${init.protocol}://`;
-const domain = `.${init.domain}`;
+let domain = `.${init.domain}`;
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 
@@ -50,6 +50,7 @@ let fqdn = local.getItem('fqdn') || null;
 if (fqdn) fqdn = fqdn.trim();
 let stkaddr = local.getItem('stakeaddr').trim();
 let ident = { "nid": nodeid, "stkaddr": stkaddr, "fqdn": fqdn };
+ident.con = { home: home, cur: curServer }
 
 let initTimer;
 let returningHome = false;
@@ -59,7 +60,7 @@ const initialize = () => {
 	// pass identity to server on success
 	SecNode.getPrimaryAddress((err, taddr) => {
 		if (err) {
-			console.log(err);
+			console.error(err);
 
 			if (!initTimer) {
 				initTimer = setInterval(() => {
@@ -71,12 +72,12 @@ const initialize = () => {
 			if (initTimer) clearInterval(initTimer);
 
 			ident.taddr = taddr;
-			console.log("Secure Node t_address=" + taddr);
+			console.log("Secure Node t_address (not for stake)=" + taddr);
 			SecNode.ident = ident;
 
 			SecNode.getAddrWithBal((err, result) => {
 				if (err) {
-					console.log(err);
+					console.error(err);
 					return
 				}
 
@@ -94,7 +95,7 @@ const initialize = () => {
 					console.log("Balance for challenge transactions is " + result.bal);
 					if (result.bal < 0.01 && result.valid) {
 						console.log("Challenge private address balance getting low");
-						console.log("Please send a few small amounts (0.2) each to the private address below");
+						console.log("Please send a few small amounts (0.2 each) to the private address below");
 					}
 				}
 
@@ -102,7 +103,6 @@ const initialize = () => {
 				console.log(result.addr)
 
 				ident.email = local.getItem('email');
-				ident.con = { home: home, cur: curServer }
 				SecNode.getNetworks(null, (err, nets) => {
 					ident.nets = nets;
 					socket.emit('initnode', ident, () => {
@@ -124,11 +124,11 @@ const setSocketEvents = () => {
 		initialize();
 		if (failoverTimer) clearInterval(failoverTimer);
 	});
-	
+
 	socket.on('disconnect', () => {
-		if (returningHome) return
-		//wait  for current to be available
-		console.log(logtime(), 'No connection to ' + curServer)
+		if (!returningHome) {
+			console.log(logtime(), 'No connection to ' + curServer);
+		}
 		failoverTimer = setInterval(() => {
 			switchServer()
 		}, 70000);
@@ -143,6 +143,7 @@ const setSocketEvents = () => {
 		socket = io(protocol + curServer + domain, { forceNew: true });
 		setSocketEvents();
 		SecNode.socket = socket;
+		ident.con.cur = curServer;
 		returningHome = false;
 	})
 
@@ -151,7 +152,6 @@ const setSocketEvents = () => {
 	});
 
 	socket.on("action", (data) => {
-
 		switch (data.action) {
 			case "set nid":
 				local.setItem("nodeid", data.nid);
@@ -182,6 +182,10 @@ const setSocketEvents = () => {
 			case 'networks':
 				SecNode.getNets(data);
 				break;
+				
+			case 'changeServer':
+				switchServer(data.server);
+				break;
 		}
 	})
 }
@@ -191,8 +195,13 @@ const logtime = () => {
 	return (new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '') + " GMT" + " --";
 }
 
-const switchServer = () => {
-	let nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
+const switchServer = (server) => {
+	let nextIdx = 0
+	if(server) {
+		nextIdx = servers.indexOf(server);
+	}else{
+		nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
+	}
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
 	console.log(logtime(), "Trying server: " + curServer);
@@ -200,6 +209,7 @@ const switchServer = () => {
 	socket = io.connect(protocol + curServer + domain);
 	setSocketEvents();
 	SecNode.socket = socket;
+	ident.con.cur = curServer;
 }
 
 
