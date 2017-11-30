@@ -117,7 +117,7 @@ class SecNode {
                 })
                 .then((addrbal) => {
                   count++;
-                  if (addrbal.bal > .001) {
+                  if (addrbal.bal > .001 && !called) {
                     called = true;
                     cb(null, { "addr": addrbal.addr, "bal": addrbal.bal, "valid": valid, "lastChalBlock": lastChalBlockNum });
                   }
