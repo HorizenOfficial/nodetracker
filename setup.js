@@ -1,6 +1,6 @@
 const promptly = require('promptly');
 const fs = require("fs");
-const oshome = require('os').homedir();
+let oshome = require('os').homedir();
 const LocalStorage = require('node-localstorage').LocalStorage;
 const localStorage = new LocalStorage('./config');
 const init = require('./init');
