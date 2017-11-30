@@ -19,7 +19,7 @@ if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running
 let curIdx = servers.indexOf(home);
 let curServer = home;
 const protocol = `${init.protocol}://`;
-const domain = `.${init.domain}`;
+let domain = `.${init.domain}`;
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 

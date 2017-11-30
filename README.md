@@ -1,50 +1,72 @@
 # secnodetracker
 #### ZenCash Secure Node tracking app
 
-This is installed on a Secure Node to allow it to communicate with the zensystem.io tracking server. It provides data to the server about the Secure Node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. This runs completely separate from the zen node network.  
+This is installed on a Secure Node to allow it to communicate with the zensystem.io tracking server. It provides data to the server about the Secure Node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. This runs completely separate from the zen node network.
 
-## UPDATE 0.0.9 - BETA-Testnet
- - Added region selection in the setup
- - Added failover to other servers
- - Repository moved to zencashofficial
+Each secure node must have a unique IP address (v4 or v6), a stake address with 42 ZEN, about 1 ZEN for challenges in a z-address on the node, and be able to perform challenges in less than 300 seconds.  See the About page on the server for more information.  
 
-### About This Phase of the Beta
- This part of the beta involves switching all the testnet nodes over to the new sets of regional servers. Some of the priority items to test in this phase are: Node setup process, node failover, moving nodes between servers (changing home server), consistent info across servers, and.  The next phase will be migration of existing nodes to mainnet. Instructions will be published later for that phase.
+
+## UPDATE 0.1.0 - BETA-MAINNET
+ - Updated for use on mainnet
+ - Setup will use ZEN_HOME environment variable if found for the zen.conf file
+ - Added check for a balance in all existing z-addresses to help work around 0 balance after a challenge
+
+The regional servers run on mainnet as of December 1st 2017.
+
+### About This Phase of the Beta - Mainnet
+ This phase migrates existing nodes to mainnet. Earning and payouts start after a short testing period.
  
-There are now three sets of regional servers.  A node should select the closest region as a default.  
  
-### IMPORTANT UPDATE STEPS -- Changing to a new repository and new servers:
+### IMPORTANT UPDATE STEPS -- Switching to mainnet:
 These are upgrade and migration instructions.  If you are doing a new install see the New Installation instructions further down.
 
-This version connects to new zensystem.io servers (NOT devtracksys.secnodes.com).
-Setup has to be run.
+  #### Make sure your zen node is no longer on testnet.  
+   1. Remove 'testnet=1' from your zen.conf 
+   2. Stop zend:  zen-cli stop
+   3. Start zend and let it sync with the main blockchain.
+   4. Adjust steps as needed if using monitoring applications.
 
-  1. Delete the following files in the secnodetracker/config folder(unless you want to re-enter):
-      - nodeid, serverurl, lastChalBlock, lastExecSec
+   #### Create a z_address for the challenges 
+   1. Run: zen-cli z_getnewaddress
+   2. Send 1 ZEN split into 4 to 5 separate transactions to that address.
 
-  2. Change to the secnodetracker folder. The repository has to be changed then checked to ensure it matches.
-   * git remote set-url origin https://github.com/ZencashOfficial/secnodetracker.git
-   * git remote -v
+   #### Prepare a stake address
+   It is suggested a stake address exists that does not reside on the node.
+   1. Identify your stake address or create one in a wallet. It must contain at least 42 ZEN.
   
-  3. Update the files from github
+  #### Check the version of nodejs
+  Run: node -v
+  Suggested version is 8.9.x since it will have long term support.
+  To change: sudo n 8.9
+
+   #### Update secnodetracker
+  1. Stop the tracker application.
+
+  2. Delete the following files in the secnodetracker/config folder:
+      - nodeid, serverurl, lastChalBlock, lastExecSec, stakeaddr
+
+  3. Change to the secnodetracker folder and update the tracker application. 
+  This may be '~/zencash/secnodetracker' if the install guides were followed. Run the following commands:
    * git fetch origin
    * git checkout master
    * git pull
 
-  3. Run the tracker setup and pay attention to the region. Enter another region code if it is not correct.
+
+  4. If the servers are available, run the tracker setup and follow the prompts.
     * node setup
 
-  4. Stop the tracker and restart it.  The tracker should connect to the new server and register.
-    * Ctrl-c
+  5. If the servers are available, start the tracer app. The tracker should connect to the mainnet servers and register.
     * node app
+
+  When the tracker successfully connects it will indicate it has registered and authenticated.
 
 
 ## Version Notes
-This is Beta-Testnet and remains on the testnet. It will not work on the devtracksys.secnodes.com server.
+This is Beta-Mainnet and is not meant to run on testnet. 
 
 
 ## New Installation
-If you have followed Part 1, Part 2, and Part 2.5 of guides for creating a Secure Node, you should be ready to install this on your node. More complete instructions will be added to Part 3 in the future.  
+If you have followed Part 1, Part 2, and Part 2.5, and/or Part 3 of guides for creating a Secure Node, you should be ready to install this on your node. 
 
 You will need about 1 zen in the node wallet in a private address. Send multiple small amounts (0.2 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. 
 
@@ -52,7 +74,7 @@ The private z-address needs to be created manually if not present (zen-cli z_get
 
 You will also need a transparent address in a wallet (not on the node) with at least 42 zen so the node will register on the server. This is not the address shown on the console (the t-address on the console is used as the node's identity). The stake address is the payout address.
 
-If you need some testnet zen (znt) please ask in the channel and post your transparent address (starts with 'zt' in testnet): someone will send some to you.
+Note: real ZEN transparent addresses (t-address) start wtih a 'zn' (testnet addresses star with a 'zt').
 
 ### Install npm and Node.js
 Log into your secure node.  The following installs the NPM and Node.js (a javascript virtual machine). 
@@ -74,7 +96,7 @@ Put this repository in the zencash folder too.
    * npm install
    
 ### Run setup
-You will need your staking address (with at least 42zen - znt for testnet) and an email address for alerts (if you do not want alerts enter 'none' for the email address).  During setup press Enter to accept the default or enter the information.
+You will need your staking address (with at least 42 ZEN) and an email address for alerts (if you do not want alerts enter 'none' for the email address).  During setup press Enter to accept the default or enter new information.
 
   * node setup
 
@@ -90,11 +112,11 @@ Use Ctrl-c to break out of the app.
  
 Check your node on the tracking server:  https://securenodes.zensystem.io
   
-Report any critical issues to @devman or ask for help in the zencash slack #securenodes channel. 
+Report any critical issues on github https://github.com/ZencashOfficial/secnodetracker
+For community support, ask question in the zencash Discord #securenodes channel. 
 
 
-Instructions on installing a monitoring tool like nodemon or PM2 will be included later so the app can run in the background and start on reboot. If you want to install something now checkout PM2.
-
+Instructions on installing a monitoring tool like nodemon or PM2 may be found separately.
 
   
 
