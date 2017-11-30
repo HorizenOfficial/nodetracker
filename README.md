@@ -21,8 +21,8 @@ The regional servers run on mainnet as of December 1st 2017.
 These are upgrade and migration instructions.  If you are doing a new install see the New Installation instructions further down.
 
   #### Make sure your zen node is no longer on testnet.  
-   1. Remove 'testnet=1' from your zen.conf 
-   2. Stop zend:  zen-cli stop
+   1. Stop zend:  zen-cli stop
+   2. Remove 'testnet=1' from your zen.conf 
    3. Start zend and let it sync with the main blockchain.
    4. Adjust steps as needed if using monitoring applications.
 
