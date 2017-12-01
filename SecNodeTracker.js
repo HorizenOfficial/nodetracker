@@ -124,9 +124,18 @@ class SecNode {
                   if (count === results.length && !called) {
                     cb(null, { "addr": addrbal.addr, "bal": addrbal.bal, "valid": valid, "lastChalBlock": lastChalBlockNum });
                   }
+                })
+                .catch(err => {
+                  console.error("Error: zen z_getbalance ", err);
                 });
             }
+          })
+          .catch(err => {
+            console.error("Error: zen z_listaddresses ", err);
           });
+      })
+      .catch(err => {
+        console.error("Error: zen getinfo ", err);
       });
   }
 
