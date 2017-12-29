@@ -48,17 +48,9 @@ class SecNode {
     this.waiting = false;
     this.zenDownInterval = 1000 * 61;
     this.zenDownTimer = null;
-    this.zenDownLoop = () => {
-      this.getPrimaryAddress((err, amt) => {
-        if (err) {
-          console.error(logtime(), err);
-        } else {
-          console.log(logtime(), 'Zen connected.');
-          clearInterval(this.zenDownTimer);
-          this.collectStats();
-        }
-      });
-    };
+    this.zenDownLoop = () =>{
+      this.checkZen();
+    }
   }
 
   static auto() {
@@ -69,6 +61,19 @@ class SecNode {
 
   initialize() {
     this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
+  }
+
+  checkZen() {
+    const self = this;
+    self.getPrimaryAddress((err, amt) => {
+      if (err) {
+        console.error(logtime(), err);
+      } else {
+        console.log(logtime(), 'Zen connected.');
+        clearInterval(self.zenDownTimer);
+        self.collectStats();
+      }
+    });
   }
 
   getPrimaryAddress(cb) {
@@ -185,14 +190,16 @@ class SecNode {
                 console.log("OperationId=" + opid);
                 self.chalStart = new Date();
                 self.chalRunning = true;
-                self.opTimer = setInterval(() => {
-                  self.checkOp(opid, chal);
+                if (!self.opTimer) {
+                  self.opTimer = setInterval(() => {
+                    self.checkOp(opid, chal);
+                  }
+                    , self.opTimerInterval);
                 }
-                  , self.opTimerInterval);
                 return
               })
               .catch(err => {
-                let resp = { "crid": chal.crid, "status": "error", "error": err }
+                let resp = { "crid": chal.crid, "status": "error", "error": 'unable to create transaction' }
                 resp.ident = self.ident;
                 console.error(logtime(), "Challenge: unable to create and send transaction.");
                 console.error(err);
@@ -279,7 +286,7 @@ class SecNode {
       })
       .catch(err => {
         self.chalRunning = false;
-        console.error("challenge error");
+        console.log(logtime(), "Challenge error: could not get operation status.");
         console.error(err);
         clearInterval(self.opTimer);
         return
