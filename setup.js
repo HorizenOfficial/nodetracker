@@ -197,7 +197,7 @@ const getRPC = () => {
     let ipfound = false;
     lines.forEach(line => {
         line = line.trim();
-        if (line.indexOf('#') === -1 && line.indexOf("rpc") === 0) {
+        if (!line.startsWith('#') && line.indexOf("rpc") === 0) {
             let idx = line.indexOf("=");  //don't use split since user or pw could have =
             let key = line.substring(0, idx);
             let val = line.substring(idx + 1);
