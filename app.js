@@ -13,13 +13,14 @@ if (local.length == 0) {
 }
 
 // host names without domain
-const servers = local.getItem('servers').split(',');
-const home = local.getItem('home');
+let servers = local.getItem('servers').split(',');
+let home = local.getItem('home');
 if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue.")
 let curIdx = servers.indexOf(home);
 let curServer = home;
-const protocol = `${init.protocol}://`;
+let protocol = `${init.protocol}://`;
 let domain = `.${init.domain}`;
+
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 
@@ -186,6 +187,15 @@ const setSocketEvents = () => {
 			case 'changeServer':
 				switchServer(data.server);
 				break;
+      
+      case 'changeHome':
+				changeHome(data.server);
+				break;
+      
+      case 'updateServers':
+        servers = data.servers;
+        local.setItem("servers", servers);
+				break;
 		}
 	})
 }
@@ -210,6 +220,21 @@ const switchServer = (server) => {
 	setSocketEvents();
 	SecNode.socket = socket;
 	ident.con.cur = curServer;
+}
+
+const changeHome = (server) =>{
+  home = server;
+  local.setItem("home", server);  
+  curServer = home;
+  curIdx = servers.indexOf(home);
+  returningHome = true;
+  console.log(logtime(), `Change home server to ${curServer}.`);
+  socket.close();
+  socket = io(protocol + curServer + domain, { forceNew: true });
+  setSocketEvents();
+  SecNode.socket = socket;
+  ident.con.cur = curServer;
+  returningHome = false;
 }
 
 
