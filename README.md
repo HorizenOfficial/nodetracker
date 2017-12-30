@@ -6,72 +6,44 @@ This is installed on a Secure Node to allow it to communicate with the zensystem
 Each secure node must have a unique IP address (v4 or v6), a stake address with 42 ZEN, about 1 ZEN for challenges in a z-address on the node, and be able to perform challenges in less than 300 seconds.  See the About page on the server for more information.  
 
 
-## UPDATE 0.1.0 - BETA-MAINNET
- - Updated for use on mainnet
- - Setup will use ZEN_HOME environment variable if found for the zen.conf file
- - Added check for a balance in all existing z-addresses to help work around 0 balance after a challenge
-
-The regional servers run on mainnet as of December 1st 2017.
-
-### About This Phase of the Beta - Mainnet
- This phase migrates existing nodes to mainnet. Earning and payouts start after a short testing period.
+## UPDATE 0.1.1 - BETA-MAINNET
+ - Add ability to assign home server for load balancing
+ - Add ability to update server list for failover
+ - Fix status when zen is back up
  
  
-### IMPORTANT UPDATE STEPS -- Switching to mainnet:
-These are upgrade and migration instructions.  If you are doing a new install see the New Installation instructions further down.
-
-  #### Make sure your zen node is no longer on testnet.  
-   1. Stop zend:  zen-cli stop
-   2. Remove 'testnet=1' from your zen.conf 
-   3. Start zend and let it sync with the main blockchain.
-   4. Adjust steps as needed if using monitoring applications.
-   5. Optional: delete the .zen/testnet3 folder to save space
-
-   #### Create a z_address for the challenges 
-   1. Run: zen-cli z_getnewaddress
-   2. Send 1 ZEN split into 4 to 5 separate transactions to that address.
-   3. Optional: this version checks for multiple z_addresses. Create one or more additional and split the 1 ZEN across them.
-
-   #### Prepare a stake address
-   It is suggested a stake address exists that does not reside on the node.
-   1. Identify your stake address or create one in a wallet. It must contain at least 42 ZEN.
+### IMPORTANT UPDATE STEPS:
+These are update instructions.  If you are doing a new install see the New Installation instructions further down.
   
   #### Check the version of nodejs
    1. Run: node -v
     
    - Suggested version is 8.9.x since it will have long term support. 
-   To change run: sudo n 8.9
+   To change run: sudo n stable
 
    #### Update secnodetracker
-  1. Stop the tracker application.
+ 
 
-  2. Delete the following files in the secnodetracker/config folder:
-      - nodeid, serverurl, lastChalBlock, lastExecSec, stakeaddr
-
-  3. Change to the secnodetracker folder and update the tracker application. 
-  This may be '~/zencash/secnodetracker' if the install guides were followed. Run the following commands:
+  1. Change to the secnodetracker folder and update the tracker application. 
+    This may be '~/zencash/secnodetracker' if the install guides were followed. Run the following commands:
       * git fetch origin
       * git checkout master
       * git pull
 
-
-  4. If the servers are available, run the tracker setup and follow the prompts.
-      * node setup
-
-  5. If the servers are available, start the tracer app. The tracker should connect to the mainnet servers and register.
+  2. Stop the tracker application and restart it
+      * Ctrl-c
       * node app
+      * or restart using your managment application such as PM2
 
-  When the tracker successfully connects it will indicate it has registered and authenticated.
-
-
+  
 ## Version Notes
-This is Beta-Mainnet and is not meant to run on testnet. 
+This is Beta-Mainnet but may be run on testnet following the instructions on the testnet home page: https://securenodes-testnet.zensystem.io/ 
 
 
 ## New Installation
 If you have followed Part 1, Part 2, and Part 2.5, and/or Part 3 of guides for creating a Secure Node, you should be ready to install this on your node. 
 
-You will need about 1 zen in the node wallet in a private address. Send multiple small amounts (0.2 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. 
+You will need about 1 zen in the node wallet in a private address. Send multiple small amounts (0.2 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. Alternately create an additional private address and split the amounts between them.
 
 The private z-address needs to be created manually if not present (zen-cli z_getnewaddress).  If already present the balance is checked when the app starts and the address is displayed on the tracker console.
 
@@ -84,11 +56,11 @@ Log into your secure node.  The following installs the NPM and Node.js (a javasc
 
   * sudo apt-get install npm
   * sudo npm install -g n
-  * sudo n 8.9
+  * sudo n stable
 
 ### Clone this repository
 If you followed the Guides you should have a ~/zencash folder with the zen folder in it. 
-Put this repository in the zencash folder too. 
+Put this repository in the zencash folder too or the folder of your choice.
 
   * cd ~/zencash
   * git clone https://github.com/ZencashOfficial/secnodetracker.git
