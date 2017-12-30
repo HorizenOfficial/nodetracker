@@ -12,6 +12,12 @@ if (local.length == 0) {
 	process.exit();
 }
 
+const ipv = local.getItem('ipv');
+if (ipv.trim() === '6') {
+	console.log("You setup ipv6 connectivity. We need to apply a workaround for dns resolution.");
+	require('./ipv6-dns-workaround');
+}
+
 // host names without domain
 let servers = local.getItem('servers').split(',');
 let home = local.getItem('home');
@@ -107,7 +113,7 @@ const initialize = () => {
 				SecNode.getNetworks(null, (err, nets) => {
 					ident.nets = nets;
 					socket.emit('initnode', ident, () => {
-						//only pass email and nets on init.  
+						//only pass email and nets on init.
 						delete ident.email;
 						delete ident.nets;
 					});
@@ -183,7 +189,7 @@ const setSocketEvents = () => {
 			case 'networks':
 				SecNode.getNets(data);
 				break;
-				
+
 			case 'changeServer':
 				switchServer(data.server);
 				break;
@@ -255,4 +261,3 @@ const conCheck = () => {
 SecNode.socket = socket;
 SecNode.initialize();
 conCheck();
-
