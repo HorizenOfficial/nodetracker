@@ -201,6 +201,7 @@ const setSocketEvents = () => {
       case 'updateServers':
         servers = data.servers;
         local.setItem("servers", servers);
+        console.log(logtime(), "Updated server list");
 				break;
 		}
 	})
@@ -236,10 +237,12 @@ const changeHome = (server) =>{
   returningHome = true;
   console.log(logtime(), `Change home server to ${curServer}.`);
   socket.close();
+  ident.con.home = home;
+  ident.con.cur = curServer;
+ 
   socket = io(protocol + curServer + domain, { forceNew: true });
   setSocketEvents();
   SecNode.socket = socket;
-  ident.con.cur = curServer;
   returningHome = false;
 }
 
