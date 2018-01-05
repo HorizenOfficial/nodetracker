@@ -20,16 +20,25 @@ These are update instructions.  If you are doing a new install see the New Insta
    1. Run: node -v
     
    - Suggested version is 8.9.x since it will have long term support. 
-   To change run: sudo n stable
+   To change run: 
+      * sudo n stable
 
    #### Update secnodetracker
  
 
   1. Change to the secnodetracker folder and update the tracker application. 
-    This may be '~/zencash/secnodetracker' if the install guides were followed. Run the following commands:
+    This may be '~/zencash/secnodetracker' if the install guides were followed.
+    Run the following commands:
       * git fetch origin
       * git checkout master
       * git pull
+
+    If git complains about overwritting a file use: git checkout -- filename
+    Then run the above commands again
+
+  2. Run setup (this will refresh the list of servers) in the scenodetracker folder.
+     You should be able to accept all the previous values.
+      * node setup
 
   2. Stop the tracker application and restart it
       * Ctrl-c
@@ -105,6 +114,7 @@ There are two optional environment variables that may be used to locate zen.conf
       oshome + "/.zen/zen.conf";
       oshome + "/zencash/.zen/zen.conf";
       oshome + "/AppData/Roaming/Zen/zen.conf";
+      
 
   
 
