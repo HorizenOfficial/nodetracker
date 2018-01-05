@@ -6,10 +6,11 @@ This is installed on a Secure Node to allow it to communicate with the zensystem
 Each secure node must have a unique IP address (v4 or v6), a stake address with 42 ZEN, about 1 ZEN for challenges in a z-address on the node, and be able to perform challenges in less than 300 seconds.  See the About page on the server for more information.  
 
 
-## UPDATE 0.1.1 - BETA-MAINNET
+## UPDATE 0.2.0 - BETA-MAINNET
  - Add ability to assign home server for load balancing
  - Add ability to update server list for failover
  - Fix status when zen is back up
+ - Add an environment variable for zen.conf
  
  
 ### IMPORTANT UPDATE STEPS:
@@ -71,7 +72,7 @@ Put this repository in the zencash folder too or the folder of your choice.
    * npm install
    
 ### Run setup
-You will need your staking address (with at least 42 ZEN) and an email address for alerts (if you do not want alerts enter 'none' for the email address).  During setup press Enter to accept the default or enter new information.
+You will need your staking address (with at least 42 ZEN) and an email address for alerts (if you do not want alerts enter 'none' for the email address).  During setup press Enter to accept the default or enter new information.  See the Note below on finding the zen.conf file.
 
   * node setup
 
@@ -92,6 +93,18 @@ For community support, ask question in the zencash Discord #securenodes channel.
 
 
 Instructions on installing a monitoring tool like nodemon or PM2 may be found separately.
+
+**Locating zen.conf**
+There are two optional environment variables that may be used to locate zen.conf which is needed for rpc configuration.
+
+   ZENCONF - if this is found it must contain the full path to zen.conf including the file name.
+   ZEN_HOME - if this is found it should be a base path. '/.zen/zen.conf' is appended to it.
+
+   If the above two are not found the operating system is used for the home path.
+   The search is then peformed in the following order:
+      oshome + "/.zen/zen.conf";
+      oshome + "/zencash/.zen/zen.conf";
+      oshome + "/AppData/Roaming/Zen/zen.conf";
 
   
 
