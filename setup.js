@@ -175,7 +175,9 @@ const getRPC = () => {
         let path2 = oshome + "/zencash/.zen/zen.conf";
         let path3 = oshome + "/AppData/Roaming/Zen/zen.conf";
 
-        if (fs.existsSync(path1)) {
+        if (process.env.ZENCONF) {
+            lines = fs.readFileSync(process.env.ZENCONF, "utf8").split("\n");
+        } else if (fs.existsSync(path1)) {
             lines = fs.readFileSync(path1, "utf8").split("\n");
         } else if (fs.existsSync(path2)) {
             lines = fs.readFileSync(path2, "utf8").split("\n");
