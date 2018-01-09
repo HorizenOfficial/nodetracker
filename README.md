@@ -21,7 +21,7 @@ These are update instructions.  If you are doing a new install see the New Insta
     
    - Suggested version is 8.9.x since it will have long term support. 
    To change run: 
-      * sudo n stable
+      * sudo n 8.9
 
    #### Update secnodetracker
  
@@ -63,10 +63,11 @@ Note: real ZEN transparent addresses (t-address) start wtih a 'zn' (testnet addr
 
 ### Install npm and Node.js
 Log into your secure node.  The following installs the NPM and Node.js (a javascript virtual machine). 
-
+  - Suggested version is 8.9.x since it will have long term support. 
+  
   * sudo apt-get install npm
   * sudo npm install -g n
-  * sudo n stable
+  * sudo n 8.9
 
 ### Clone this repository
 If you followed the Guides you should have a ~/zencash folder with the zen folder in it. 
@@ -114,7 +115,7 @@ There are two optional environment variables that may be used to locate zen.conf
       oshome + "/.zen/zen.conf";
       oshome + "/zencash/.zen/zen.conf";
       oshome + "/AppData/Roaming/Zen/zen.conf";
-      
+
 
   
 
