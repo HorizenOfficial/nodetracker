@@ -10,7 +10,8 @@ Each secure node must have a unique IP address (v4 or v6), a stake address with 
  - Add ability to assign home server for load balancing
  - Add ability to update server list for failover
  - Fix status when zen is back up
- - Add an environment variable for zen.conf
+ - Add an environment variable for location of zen.conf
+ - Fix for using IPv6 
  
  
 ### IMPORTANT UPDATE STEPS:
@@ -64,7 +65,7 @@ Note: real ZEN transparent addresses (t-address) start wtih a 'zn' (testnet addr
 ### Install npm and Node.js
 Log into your secure node.  The following installs the NPM and Node.js (a javascript virtual machine). 
   - Suggested version is 8.9.x since it will have long term support. 
-  
+
   * sudo apt-get install npm
   * sudo npm install -g n
   * sudo n 8.9
