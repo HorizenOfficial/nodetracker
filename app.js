@@ -12,14 +12,21 @@ if (local.length == 0) {
 	process.exit();
 }
 
+const ipv = local.getItem('ipv');
+if (ipv.trim() === '6') {
+	console.log("You setup ipv6 connectivity. We need to apply a workaround for dns resolution.");
+	require('./ipv6-dns-workaround');
+}
+
 // host names without domain
-const servers = local.getItem('servers').split(',');
-const home = local.getItem('home');
+let servers = local.getItem('servers').split(',');
+let home = local.getItem('home');
 if (!home) return console.log("ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue.")
 let curIdx = servers.indexOf(home);
 let curServer = home;
-const protocol = `${init.protocol}://`;
+let protocol = `${init.protocol}://`;
 let domain = `.${init.domain}`;
+
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 
@@ -106,7 +113,7 @@ const initialize = () => {
 				SecNode.getNetworks(null, (err, nets) => {
 					ident.nets = nets;
 					socket.emit('initnode', ident, () => {
-						//only pass email and nets on init.  
+						//only pass email and nets on init.
 						delete ident.email;
 						delete ident.nets;
 					});
@@ -182,9 +189,19 @@ const setSocketEvents = () => {
 			case 'networks':
 				SecNode.getNets(data);
 				break;
-				
+
 			case 'changeServer':
 				switchServer(data.server);
+				break;
+      
+      case 'changeHome':
+				changeHome(data.server);
+				break;
+      
+      case 'updateServers':
+        servers = data.servers;
+        local.setItem("servers", servers);
+        console.log(logtime(), "Updated server list");
 				break;
 		}
 	})
@@ -212,6 +229,23 @@ const switchServer = (server) => {
 	ident.con.cur = curServer;
 }
 
+const changeHome = (server) =>{
+  home = server;
+  local.setItem("home", server);  
+  curServer = home;
+  curIdx = servers.indexOf(home);
+  returningHome = true;
+  console.log(logtime(), `Change home server to ${curServer}.`);
+  socket.close();
+  ident.con.home = home;
+  ident.con.cur = curServer;
+ 
+  socket = io(protocol + curServer + domain, { forceNew: true });
+  setSocketEvents();
+  SecNode.socket = socket;
+  returningHome = false;
+}
+
 
 const conCheck = () => {
 	setInterval(() => {
@@ -230,4 +264,3 @@ const conCheck = () => {
 SecNode.socket = socket;
 SecNode.initialize();
 conCheck();
-

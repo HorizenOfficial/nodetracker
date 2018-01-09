@@ -175,7 +175,9 @@ const getRPC = () => {
         let path2 = oshome + "/zencash/.zen/zen.conf";
         let path3 = oshome + "/AppData/Roaming/Zen/zen.conf";
 
-        if (fs.existsSync(path1)) {
+        if (process.env.ZENCONF) {
+            lines = fs.readFileSync(process.env.ZENCONF, "utf8").split("\n");
+        } else if (fs.existsSync(path1)) {
             lines = fs.readFileSync(path1, "utf8").split("\n");
         } else if (fs.existsSync(path2)) {
             lines = fs.readFileSync(path2, "utf8").split("\n");
@@ -197,7 +199,7 @@ const getRPC = () => {
     let ipfound = false;
     lines.forEach(line => {
         line = line.trim();
-        if (line.indexOf('#') === -1 && line.indexOf("rpc") === 0) {
+        if (!line.startsWith('#') && line.indexOf("rpc") === 0) {
             let idx = line.indexOf("=");  //don't use split since user or pw could have =
             let key = line.substring(0, idx);
             let val = line.substring(idx + 1);
