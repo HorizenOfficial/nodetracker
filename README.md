@@ -17,7 +17,7 @@ Each secure node must have a unique IP address (v4 or v6), a stake address with 
  - Add an environment variable for location of zen.conf
  - Fix for using IPv6 
  
- 
+
  
 ### IMPORTANT UPDATE STEPS:
 These are update instructions.  If you are doing a new install see the New Installation instructions further down.
@@ -43,6 +43,7 @@ These are update instructions.  If you are doing a new install see the New Insta
     Then run the above commands again
 
   2. Run setup (this will refresh the list of servers) in the scenodetracker folder.
+     This can be skipped if updating from 0.2.0
      You should be able to accept all the previous values.
       * node setup
 
