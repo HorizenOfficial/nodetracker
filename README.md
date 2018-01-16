@@ -6,14 +6,17 @@ This is installed on a Secure Node to allow it to communicate with the zensystem
 Each secure node must have a unique IP address (v4 or v6), a stake address with 42 ZEN, about 1 ZEN for challenges in a z-address on the node, and be able to perform challenges in less than 300 seconds.  See the About page on the server for more information.  
 
 
-## UPDATE 0.2.0 - BETA-MAINNET
+## UPDATE 0.2.1 - BETA-MAINNET
+ - Fix for 'Previous challenge still running'
+ 
+ 
+  #### 0.2.0 
  - Add ability to assign home server for load balancing
  - Add ability to update server list for failover
  - Fix status when zen is back up
  - Add an environment variable for location of zen.conf
  - Fix for using IPv6 
-
- - 0.2.1 Fix for 'Previous challenge still running'
+ 
  
  
 ### IMPORTANT UPDATE STEPS:
