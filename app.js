@@ -217,7 +217,7 @@ const switchServer = (server) => {
 	if(server) {
 		nextIdx = servers.indexOf(server);
 	}else{
-		nextIdx = curIdx + 1 === servers.length ? 0 : curIdx + 1;
+		nextIdx = curIdx + 1 >= servers.length ? 0 : curIdx + 1;
 	}
 	curServer = servers[nextIdx];
 	curIdx = nextIdx;
