@@ -190,12 +190,9 @@ class SecNode {
                 console.log("OperationId=" + opid);
                 self.chalStart = new Date();
                 self.chalRunning = true;
-                if (!self.opTimer) {
-                  self.opTimer = setInterval(() => {
-                    self.checkOp(opid, chal);
-                  }
-                    , self.opTimerInterval);
-                }
+                self.opTimer = setInterval(() => {
+                  self.checkOp(opid, chal);
+                }, self.opTimerInterval);
                 return
               })
               .catch(err => {
