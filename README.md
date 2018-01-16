@@ -12,6 +12,8 @@ Each secure node must have a unique IP address (v4 or v6), a stake address with 
  - Fix status when zen is back up
  - Add an environment variable for location of zen.conf
  - Fix for using IPv6 
+
+ - 0.2.1 Fix for 'Previous challenge still running'
  
  
 ### IMPORTANT UPDATE STEPS:
