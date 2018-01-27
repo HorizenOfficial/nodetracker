@@ -12,11 +12,19 @@ if (local.length == 0) {
 	process.exit();
 }
 
+let localAddress = local.getItem('localaddress') || null;
 const ipv = local.getItem('ipv');
 if (ipv.trim() === '6') {
+	if (!localAddress) {
+		localAddress = '::';
+	}
 	console.log("You setup ipv6 connectivity. We need to apply a workaround for dns resolution.");
 	require('./ipv6-dns-workaround');
 }
+if (!localAddress) {
+	localAddress = '0.0.0.0';
+}
+localAddress = Object.freeze(localAddress);
 
 // host names without domain
 let servers = local.getItem('servers').split(',');
@@ -26,8 +34,10 @@ let curIdx = servers.indexOf(home);
 let curServer = home;
 let protocol = `${init.protocol}://`;
 let domain = `.${init.domain}`;
-
-let socket = io(protocol + curServer + domain, { multiplex: false });
+let socket = io(
+	protocol + curServer + domain,
+	{ multiplex: false, transports: ['websocket'], localAddress: localAddress }
+);
 let failoverTimer;
 
 //get cpu config
@@ -147,7 +157,10 @@ const setSocketEvents = () => {
 		returningHome = true;
 		console.log(logtime(), `Returning to home server ${curServer}.`);
 		socket.close();
-		socket = io(protocol + curServer + domain, { forceNew: true });
+		socket = io(
+			protocol + curServer + domain,
+			{ forceNew: true, transports: ['websocket'], localAddress: localAddress }
+		);
 		setSocketEvents();
 		SecNode.socket = socket;
 		ident.con.cur = curServer;
@@ -193,11 +206,11 @@ const setSocketEvents = () => {
 			case 'changeServer':
 				switchServer(data.server);
 				break;
-      
+
       case 'changeHome':
 				changeHome(data.server);
 				break;
-      
+
       case 'updateServers':
         servers = data.servers;
         local.setItem("servers", servers);
@@ -231,7 +244,7 @@ const switchServer = (server) => {
 
 const changeHome = (server) =>{
   home = server;
-  local.setItem("home", server);  
+  local.setItem("home", server);
   curServer = home;
   curIdx = servers.indexOf(home);
   returningHome = true;
@@ -239,8 +252,11 @@ const changeHome = (server) =>{
   socket.close();
   ident.con.home = home;
   ident.con.cur = curServer;
- 
-  socket = io(protocol + curServer + domain, { forceNew: true });
+
+  socket = io(
+  	protocol + curServer + domain,
+  	{ forceNew: true, transports: ['websocket'], localAddress: localAddress }
+  );
   setSocketEvents();
   SecNode.socket = socket;
   returningHome = false;
