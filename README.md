@@ -35,7 +35,7 @@ These are update instructions.  If you are doing a new install see the New Insta
   1. Change to the secnodetracker folder and update the tracker application. 
     This may be '~/zencash/secnodetracker' if the install guides were followed.
     Run the following commands:
-      * git checkout -- packages.json
+      * git checkout -- package.json
       * git fetch origin
       * git checkout master
       * git pull
