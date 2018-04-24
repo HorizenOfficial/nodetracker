@@ -108,7 +108,7 @@ class SecNode {
         this.zenrpc.z_listaddresses()
           .then((results) => {
             if (results.length == 0) {
-              console.log("No private address found. Please create one using 'zen_cli z_getnewaddress' and send at least 1 ZEN for challenges split into 4 or more transactions");
+              console.log("No private address found. Please create one using 'zen-cli z_getnewaddress' and send at least 1 ZEN for challenges split into 4 or more transactions");
               return cb(null)
             }
             let called = false;
