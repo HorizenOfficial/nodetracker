@@ -1,5 +1,5 @@
 {
   "lookupServer": "https://securenodes2.zensystem.io/api/srvlist",
-  "domain":"zensystem.io",
+  "domain": "zensystem.io",
   "protocol": "https"
 }
