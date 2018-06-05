@@ -1,9 +1,15 @@
-#local vs files
+# local vs files
 .vscode
 
-#config files
+# config files
 config/*
 
 
-#node modules
+# node modules
 node_modules/*
+
+# package lock file, which is created after "npm install" command
+package-lock.json
+
+# Webstorm IDE files
+.idea/
