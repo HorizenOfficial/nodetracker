@@ -158,7 +158,11 @@ class SecNode {
         console.log(logtime(), "Start challenge. " + chal.crid);
 
         if (self.chalRunning) {
-            let resp = {"crid": chal.crid, "status": "error", "error": "Previous challenge still running. " + self.crid};
+            let resp = {
+                "crid": chal.crid,
+                "status": "error",
+                "error": "Previous challenge still running. " + self.crid
+            };
             resp.ident = self.ident;
             self.socket.emit("chalresp", resp);
             console.log(logtime(), "Challenge " + self.crid + " is currently running. Failed " + chal.crid);
