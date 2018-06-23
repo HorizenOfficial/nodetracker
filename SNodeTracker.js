@@ -96,6 +96,7 @@ class SNode {
   getAddrWithBal(cb) {
     const self = this;
     const lastChalBlockNum = local.getItem('lastChalBlock').trim();
+    const results = {};
     self.rpc.getinfo()
       .then((data) => {
         let valid = true;
@@ -103,68 +104,41 @@ class SNode {
         return valid;
       })
       .then((valid) => {
-        self.rpc.z_listaddresses()
-          .then((results) => {
-            if (results.length === 0) {
-              console.log('No private address found. Please create one using \'zen_cli z_getnewaddress\' and send at least 0.4 ZEN for challenges split into 4 or more transactions');
-              return cb(null);
-            }
-            return results.some((addr) => {
-              self.rpc.z_getbalance(addr)
-                .then((bal) => {
-                  if (bal && bal > self.minChalBal) {
-                    const obj = {
-                      addr,
-                      bal,
-                      valid,
-                      lastChalBlock: lastChalBlockNum,
-                    };
-                    return cb(null, obj);
-                  }
-                  return false;
-                })
-                .catch((err) => {
-                  console.log(logtime(), `Error: z_getbalance ${err.message}`);
-                  console.error(logtime(), err);
-                });
-              return false;
-            });
-            /*
-          self.checkBalance(addr, (addrbal) => {
-            if (addrbal) {
-              const obj = addrbal;
-              obj.valid = valid;
-              obj.astChalBlock = lastChalBlockNum;
-              return cb(null, addrbal);
-            }
-          });
-          */
-          })
-          .catch((err) => {
-            console.log(logtime(), `ERROR: z_listaddresses  ${err.message}`);
-            console.error(logtime(), err);
-          });
-        return null;
+        results.valid = valid;
+        return self.rpc.z_listaddresses();
       })
-      .catch(err => rpcError(err, 'get balance', cb));
-  }
-
-  checkBalance(addr) {
-    const self = this;
-    self.rpc.z_getbalance(addr)
-      .then((bal) => {
-        const addrbal = { addr, bal };
-        if (addrbal.bal > self.minChalBal) {
-          return addrbal;
+      .then((addrs) => {
+        if (addrs.length === 0) {
+          console.log('No private address found. Please create one using \'zen_cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
+          return cb(null);
         }
-        return null;
-      })
-      .catch((err) => {
-        console.log(logtime(), `Error: z_getbalance ${err.message}`);
-        console.error(logtime(), err);
-      });
-  }
+        const bals = [];
 
+        return Promise.all(addrs.map(async (addr) => {
+          bals.push({ addr, bal: await self.rpc.z_getbalance(addr) });
+        }))
+          .then(() => {
+            let obj;
+            if (bals.length > 0) {
+              for (let i = 0; i < bals.length; i += 1) {
+                const zaddr = bals[i];
+                if (zaddr.bal && zaddr.bal > self.minChalBal) {
+                  obj = {
+                    addr: zaddr.addr,
+                    bal: zaddr.bal,
+                    valid: results.valid,
+                    lastChalBlock: lastChalBlockNum,
+                  };
+                  break;
+                }
+              }
+            }
+            if (obj) return cb(null, obj);
+            return cb('Unable to get z-addr balance');
+          });
+      })
+      .catch(err => rpcError(err, 'get addrwithbalance', cb));
+  }
 
   execChallenge(chal) {
     const self = this;
@@ -202,7 +176,13 @@ class SNode {
             const amts = [{ address: chal.sendto, amount: self.amt, memo: msgBuff.toString('hex') }];
 
             self.getAddrWithBal((err, result) => {
-              if (err) return;
+              if (err) {
+                const resp = { crid: chal.crid, status: 'error', error: err };
+                resp.ident = self.ident;
+                self.socket.emit('chalresp', resp);
+                console.log(logtime(), `Challenge ${self.crid} was unable to complete due to ${err}`);
+                return;
+              }
 
               const zaddr = result.addr;
               if (result.bal === 0) {
@@ -291,7 +271,7 @@ class SNode {
             });
         } else if (op.status === 'failed') {
           console.log(logtime(), `Challenge result:${op.status}`);
-          console.log(op.error.message);
+          console.log(logtime(), op.error.message);
 
           const resp = { crid: chal.crid, status: op.status, error: op.error.message };
           self.chalRunning = false;
@@ -301,7 +281,7 @@ class SNode {
           // clear the operation from queue
           self.rpc.z_getoperationresult([opid])
             .catch((err) => {
-              console.log(logtime(), 'ERROR getoperationresult unable to get data from zend');
+              console.log(logtime(), 'ERROR getoperationresult  unable to get data from zend');
               console.error(logtime(), err.message, err.response.data);
             });
         } else if (os === 'linux' && op.status === 'executing') {
@@ -363,13 +343,13 @@ class SNode {
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
         self.getTLSPeers((error, tlsPeers) => {
           if (error) console.log(logtime(), `Unable to get peers from zen. ${error}`);
-          const statpeers = stats;
-          statpeers.tlsPeers = tlsPeers;
-          self.socket.emit('node', { type: 'stats', stats: statpeers, ident: self.ident });
+          const stats2 = Object.assign({}, stats);
           let display = '';
-          statpeers.forEach((s) => {
-            if (s !== 'tlsPeers') display += `${s}:${statpeers[s]} `;
+          Object.entries(stats2).forEach((s) => {
+            if (s !== 'tlsPeers') display += `${s[0]}:${s[1]}  `;
           });
+          stats2.tlsPeers = tlsPeers;
+          self.socket.emit('node', { type: 'stats', stats: stats2, ident: self.ident });
           console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
         });
       }
@@ -383,11 +363,10 @@ class SNode {
       .then((data) => {
         self.rpc.z_getoperationstatus()
           .then((ops) => {
-            // let count = 0;
-            // for (const op of ops) {
-            //   op.status === 'queued' ? count++ : null;
-            // }
-            const count = ops.reduce((cnt, op) => { const val = op.status === 'queued' ? 1 : 0; return cnt + val; });
+            let count = 0;
+            for (let i = 0; i < ops.length; i += 1) {
+              count += ops[i].status === 'queued' ? 1 : 0;
+            }
             self.getAddrWithBal((err, addrBal) => {
               if (err) return cb(err);
               const stats = {
