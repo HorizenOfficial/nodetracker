@@ -18,12 +18,14 @@ const fqdnLS = localStorage.getItem('fqdn');
 const regionLS = localStorage.getItem('region');
 const ipvLS = localStorage.getItem('ipv');
 const nodetypeLS = localStorage.getItem('nodetype');
+const catLS = localStorage.getItem('category');
 const addr = addrLS ? addrLS.trim() : null;
 const email = emailLS ? emailLS.trim() : null;
 const fqdn = fqdnLS ? fqdnLS.trim() : null;
 const regionCurrent = regionLS ? regionLS.trim() : null;
 const ipv = ipvLS ? ipvLS.trim() : '4';
 const nodetype = nodetypeLS ? nodetypeLS.trim() : null;
+const category = catLS ? catLS.trim() : null;
 const regions = [];
 
 const getSetupInfo = (serverurl, cb) => {
@@ -190,6 +192,7 @@ const promptUser = (serverInfo) => {
   const msg3 = fqdn ? ` (Existing: ${fqdn}):` : ':';
   const msg4 = ipv ? ` (Existing: ${ipv}):` : ':';
   const msg5 = region ? ` (Default: ${region}):` : ':';
+  const msg6 = category ? ` (Existing: ${category}):` : ':';
 
   // Prompt user for values
   promptly
@@ -212,6 +215,10 @@ const promptUser = (serverInfo) => {
     })
     .then((reg) => {
       setRegAndServer(reg, serverInfo.servers);
+      return promptly.prompt(`Optional node category ${msg6}`, { default: category });
+    })
+    .then((cat) => {
+      localStorage.setItem('category', cat);
     })
     .catch((error) => {
       console.error('ERROR: ', error.message);

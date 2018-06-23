@@ -12,7 +12,7 @@ if (local.length === 0) {
   process.exit();
 }
 
-const ipv = local.getItem('ipv').trim();
+const ipv = local.getItem('ipv');
 if (ipv.trim() === '6') {
   console.log('You setup ipv6 connectivity. We need to apply a workaround for dns resolution.');
   require('./ipv6-dns-workaround');
@@ -30,8 +30,8 @@ if (!home) {
 
 let curIdx = servers.indexOf(home);
 let curServer = home;
-let protocol = `${init.protocol}://`;
-let domain = `.${init.domain}`;
+const protocol = `${init.protocol}://`;
+const domain = `.${init.domain}`;
 
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
@@ -62,9 +62,10 @@ console.log(`Node.js version: ${nodejs}`);
 const trkver = pkg.version;
 console.log(`Tracker app version: ${trkver}`);
 
+// node type
+console.log(`Node type: ${local.getItem('nodetype')}`);
 
 // gather identity
-// let taddr;
 const nodeid = local.getItem('nodeid').trim() || null;
 const fqdn = local.getItem('fqdn').trim() || null;
 const stkaddr = local.getItem('stakeaddr').trim();
@@ -72,6 +73,14 @@ const ident = { nid: nodeid, stkaddr, fqdn };
 ident.con = { home, cur: curServer };
 
 console.log(`Node Id: ${nodeid}`);
+
+// optional category
+let cat = local.getItem('category');
+if (cat) {
+  cat = cat.trim();
+  ident.cat = cat;
+}
+
 
 let initTimer;
 let returningHome = false;
@@ -94,7 +103,7 @@ const initialize = () => {
       ident.taddr = taddr;
       console.log(`Secure Node t_address (not for stake)= ${taddr}`);
       SNode.ident = ident;
-
+      console.log('Checking private z-addresses...');
       SNode.getAddrWithBal((error, result) => {
         if (error) {
           console.error(error);
@@ -103,7 +112,7 @@ const initialize = () => {
 
         if (result.bal === 0 && result.valid) {
           console.log('Challenge private address balance is 0');
-          console.log('Please add a total of 1 zen to the private address by sending 4 or more transactions.');
+          console.log('Please add a total of 0.04 zen to the private address by sending 4 or more transactions.');
 
           if (!nodeid) {
             console.log(result.addr);
@@ -114,7 +123,7 @@ const initialize = () => {
           console.log(`Balance for challenge transactions is ${result.bal}`);
           if (result.bal < 0.01 && result.valid) {
             console.log('Challenge private address balance getting low');
-            console.log('Please send a few small amounts (0.2 each) to the private address below');
+            console.log('Please send a few small amounts (0.02 each) to the private address below');
           }
         }
 

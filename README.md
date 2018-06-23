@@ -67,7 +67,8 @@ These are update instructions.  If you are doing a new install see the New Insta
       * npm prune  
 
   4. Run setup (this will refresh the list of servers) in the tracker's config folder.
-     You should be able to accept all the previous values.
+     You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help sort nodes into groups in API calls. 
+     
       * node setup
 
   5. Stop the tracker application and restart it
