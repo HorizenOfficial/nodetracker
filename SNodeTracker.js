@@ -472,18 +472,16 @@ class SNode {
         if (display) {
           disp += `${item}: ${(num / toGb).toFixed(2)}GB  `;
         }
-        if (save) {
-          const key = item.toLowerCase();
-          data[key] = Number((num / toGb).toFixed(2));
-        }
+        const key = item.toLowerCase();
+        data[key] = Number((num / toGb).toFixed(2));
       }
     });
+    data.units = 'GB';
     if (save) {
-      data.units = 'GB';
       self.mem = data;
     }
-    if (display) return disp;
-    return null;
+    if (display) console.log(disp);
+    return data;
   }
 }
 

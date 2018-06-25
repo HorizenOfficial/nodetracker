@@ -46,7 +46,7 @@ const { platform } = process;
 
 // check memory
 if (platform === 'linux') {
-  console.log(SNode.getProcMeminfo(true, true));
+  SNode.getProcMeminfo(true, true);
 } else {
   const memtotal = os.totalmem() / (1000 * 1000 * 1024);
   const memfree = os.freemem() / (1000 * 1000 * 1024);
