@@ -48,10 +48,12 @@ const { platform } = process;
 if (platform === 'linux') {
   console.log(SNode.getProcMeminfo(true, true));
 } else {
-  const totmem = os.totalmem() / (1000 * 1000 * 1024);
-  const freemem = os.freemem() / (1000 * 1000 * 1024);
-  SNode.mem.totmem = totmem.toFixed(1);
-  console.log(`Total memory=${totmem.toFixed(1)}GB  free memory=${freemem.toFixed(1)}GB`);
+  const memtotal = os.totalmem() / (1000 * 1000 * 1024);
+  const memfree = os.freemem() / (1000 * 1000 * 1024);
+  SNode.mem.memtotal = Number(memtotal.toFixed(1));
+  SNode.mem.memfree = Number(memfree.toFixed(1));
+  SNode.mem.units = 'GB';
+  console.log(`Total memory=${memtotal.toFixed(1)}GB  free memory=${memfree.toFixed(1)}GB`);
 }
 
 // node version

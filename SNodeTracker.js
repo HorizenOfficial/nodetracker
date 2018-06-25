@@ -21,7 +21,7 @@ const cfg = {
 const os = process.platform;
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
 const rpcError = (err, txt, cb) => {
-  if (err.response) {
+  if (err.response && err.response.data && err.repsonse.data.error) {
     const msg = err.response.data.error.message;
     if (err.response.data.error.code === -28) {
       console.log(logtime(), `Zend: Waiting - ${msg}`);
@@ -471,17 +471,19 @@ class SNode {
         const num = parseInt(row[1].trim().split(' ')[0], 10);
         if (display) {
           disp += `${item}: ${(num / toGb).toFixed(2)}GB  `;
-        } else {
-          data[item] = `${(num / toGb).toFixed(2)}GB`;
         }
         if (save) {
-          if (item === 'MemTotal') self.mem.totmem = item;
-          if (item === 'SwapTotal') self.mem.totswap = item;
+          const key = item.toLowerCase();
+          data[key] = Number((num / toGb).toFixed(2));
         }
       }
     });
+    if (save) {
+      data.units = 'GB';
+      self.mem = data;
+    }
     if (display) return disp;
-    return data;
+    return null;
   }
 }
 
