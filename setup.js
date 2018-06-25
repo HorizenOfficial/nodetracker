@@ -234,7 +234,7 @@ getRPC((isTestnet) => {
     console.log('Zen is running on testnet');
     console.log('To run on mainnet please reconfigure zen.conf and remove or comment \'#testnet=1\'');
     console.log('Continuing testnet setup');
-    getSetupInfo(init.server.testnet, (err, serverInfo) => {
+    getSetupInfo(init.servers.testnet, (err, serverInfo) => {
       if (err) {
         console.error('Can not complete setup.', err);
         process.exit();
