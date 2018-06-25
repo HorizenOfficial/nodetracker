@@ -4,7 +4,7 @@
 This is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the zencash network.
 
 Each nodetracker must have
-  - a unique IP address (v4 or v6)
+  - a unique IP address (v4 or v6) also used by zend
   - about 0.04 ZEN for challenges in one or more z-address on the node
 
   Secure Node
@@ -47,31 +47,25 @@ These are update instructions.  If you are doing a new install see the New Insta
     This may be '~/zencash/secnodetracker' if the install guides were followed.
 
       * cd ~/zencash/secnodetracker
-
-    Run the following commands:
       * git fetch origin
       * git checkout master
       * git pull
 
     If git complains about overwriting a file use: git checkout -- filename
         e.g. git checkout -- package.json
-    Then run the 3 above commands again.
+    Then run the last 3 above commands again.
 
-  2. Add node.js environment variable
-    This will stop the next step from installing development libraries and allows node.js to run in production mode.
-      *  NODE_ENV=production
+  2. Add node.js environment variable when updating the npm modules.This will stop the next step from installing development libraries. Install new nodejs module and remove old ones.
 
-  3. Install new nodejs module and remove old ones.
+      *  NODE_ENV=production npm install 
 
-      * npm install
-      * npm prune  
-
-  4. Run setup (this will refresh the list of servers) in the tracker's config folder.
+  3. Run setup (this will refresh the list of servers) in the tracker's config folder.
      You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help sort nodes into groups in API calls. 
-     
+
       * node setup
 
-  5. Stop the tracker application and restart it
+  4. Stop the tracker application and restart it
+
       * Ctrl-c
       * node app
       * or restart using your management application such as PM2
@@ -112,18 +106,17 @@ Note:  if you would like to name the folder during the clone process, append the
   or to specify a folder name 
     git clone https://github.com/ZencashOfficial/secnodetracker.git nodetracker
 
-### Set the environment variable for production
-This will stop the next step from installing development libraries and allows node.js to run in production mode.
-  * NODE_ENV=production
-  
+
 ### Install the nodejs modules
-  If a different folder was specified substitute its name
+  Use the environment variable to keep from installing development libraries. If a different folder was specified substitute its name
 
    * cd secnodetracker
-   * npm install
+   * NODE_ENV=production npm install
    
 ### Run setup
-You will need your staking address (with at least 42 ZEN or 500 ZEN) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it black).  During setup press Enter to accept the default or enter new information when prompted.  See the Note below on finding the zen.conf file.
+You will need your staking address (with at least 42 ZEN for secure or 500 ZEN for super) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it blank).  During setup press Enter to accept the default or enter new information when prompted.  See the Note below on finding the zen.conf file if is is not in its standard location.
+
+There is a prompt for an optional category. This allows a node operator with multiple nodes to group them together.
 
   * node setup
 
@@ -138,14 +131,15 @@ Use Ctrl-c to break out of the app.
 
 **NOTE:**  There should only be 1 instance of the tracking app running at a time.  It is also best to wait to start the tracker until the blockchain is fully synced.
  
+### Check the node on the Tracking Server
 Check your node on one of the tracking servers using the Nodes>All Nodes page or the Nodes>My Nodes page.
   Secure Nodes - https://securenodes.zensystem.io
   Super Nodes - https://superenodes.zensystem.io
   
+
 For any issues or help with a node, submit a ticket to [Support](https://support.zencash.com)
 
-Report any critical issues on github https://github.com/ZencashOfficial/secnodetracker
-For community support, ask question in the zencash Discord #securenodes channel. 
+For community support, ask questions in the ZenCash Discord #securenodes channel. 
 
 
 Instructions on installing a monitoring tool like nodemon or PM2 may be found separately.
