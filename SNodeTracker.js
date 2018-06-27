@@ -21,16 +21,28 @@ const cfg = {
 const os = process.platform;
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
 const rpcError = (err, txt, cb) => {
-  if (err.response && err.response.data && err.repsonse.data.error) {
-    const msg = err.response.data.error.message;
-    if (err.response.data.error.code === -28) {
-      console.log(logtime(), `Zend: Waiting - ${msg}`);
-      return cb(msg);
+  // response data may be an object or string
+  let msg;
+  if (err.response && err.response.data) {
+    if (typeof err.response.data === 'object') {
+      msg = err.response.data.error.message;
+      if (err.response.data.error.code === -28) {
+        console.log(logtime(), `Zend: Waiting - ${msg}`);
+        return cb(msg, 'starting');
+      }
+      console.log(logtime(), `ERROR zend ${txt}  ${msg}`);
+    } else {
+      msg = err.response.data;
+      if (msg.indexOf('depth') !== -1) {
+        console.log(logtime(), `ERROR zend rpc issue:  ${msg}`);
+        return cb(msg, 'queue');
+      }
+      console.log(logtime(), `ERROR zend ${txt}  ${msg}`);
     }
-    console.log(logtime(), `ERROR zend ${txt}  ${msg}`);
   } else {
     console.log(logtime(), `ERROR zend ${txt}`);
   }
+
   console.error(logtime(), err.message);
   return cb(err.message);
 };
@@ -156,6 +168,8 @@ class SNode {
     self.crid = chal.crid;
     self.rpc.getblockhash(chal.blocknum)
       .then((hash) => {
+        self.queueCount = 0;
+        /*
         if (hash.error) {
           const resp = { crid: chal.crid, status: 'failed', error: 'unable to get blockhash from zen' };
           self.chalRunning = false;
@@ -168,6 +182,7 @@ class SNode {
           }
           return;
         }
+        */
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
 
         self.rpc.getblock(hash)
@@ -215,18 +230,36 @@ class SNode {
             });
           });
       })
-      .catch(err => rpcError(err, 'get block hash for challenge', () => { }));
+      .catch(err => rpcError(err, 'get block hash for challenge', (errmsg, errtype) => {
+        const resp = { crid: chal.crid, status: 'failed' };
+        if (errtype && errtype === 'starting') {
+          resp.error = errmsg;
+        } else {
+          resp.error = 'could not get block hash from zend';
+        }
+        self.chalRunning = false;
+        resp.ident = self.ident;
+        self.socket.emit('chalresp', resp);
+        console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
+        // console.error(logtime(), error);
+        if (!self.zenDownTimer) {
+          self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
+        }
+      }));
   }
 
-  checkOp(opid, chal) {
+  async checkOp(opid, chal) {
     const self = this;
     if (!self.chalRunning) {
       console.log(logtime(), 'Clearing timer');
       clearInterval(self.opTimer);
       return;
     }
-    self.rpc.z_getoperationstatus([opid])
+    if (self.queueCount > 0) return;
+    self.queueCount += 1;
+    await self.rpc.z_getoperationstatus([opid])
       .then((operation) => {
+        self.queueCount -= 1;
         const elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
         if (operation.length === 0) {
           if (elapsed < 12) return;
@@ -262,6 +295,7 @@ class SNode {
           self.socket.emit('chalresp', resp);
           local.setItem('lastExecSec', (op.execution_secs).toFixed(2));
           self.getBlockHeight(true);
+          self.queueCount = 0;
 
           // clear the operation from queue
           self.rpc.z_getoperationresult([opid])
@@ -277,6 +311,7 @@ class SNode {
           self.chalRunning = false;
           resp.ident = self.ident;
           self.socket.emit('chalresp', resp);
+          self.queueCount = 0;
 
           // clear the operation from queue
           self.rpc.z_getoperationresult([opid])
@@ -291,12 +326,30 @@ class SNode {
           }
         }
       })
+      /*
       .catch((err) => {
         self.chalRunning = false;
         console.log(logtime(), 'ERROR Challenge: could not get operation status.');
         console.error(logtime(), err.message, err.response.data);
         clearInterval(self.opTimer);
       });
+      */
+      .catch(err => rpcError(err, 'get operation status', (errmsg, errtype) => {
+        if (errtype && errtype === 'queue') {
+          console.log(logtime(), 'ERROR: challenge - waiting for room in work queue');
+          return;
+        }
+        const resp = { crid: chal.crid, status: 'failed', error: 'could not get challenge operation status' };
+        self.chalRunning = false;
+        resp.ident = self.ident;
+        self.socket.emit('chalresp', resp);
+        console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
+        self.queueCount = 0;
+
+        if (!self.zenDownTimer) {
+          self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
+        }
+      }));
   }
 
   getConfig(req, trkver, hw, nodejs, platform) {
