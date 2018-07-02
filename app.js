@@ -1,37 +1,60 @@
-const SNode = require('./SNodeTracker').auto();
-const { LocalStorage } = require('node-localstorage');
+// const { LocalStorage } = require('node-localstorage');
+const jsonfile = require('jsonfile');
 const io = require('socket.io-client');
 const os = require('os');
+const SNode = require('./SNodeTracker').auto();
 const pkg = require('./package.json');
 const init = require('./init');
+const configuration = require('./config/config');
 
-const local = new LocalStorage('./config');
+const file = './config/config.json';
+
+// const local = new LocalStorage('./config');
 // check if setup was run
-if (local.length === 0) {
+if (!configuration) {
   console.log('Please run setup: node setup');
   process.exit();
 }
 
-const ipv = local.getItem('ipv');
-if (ipv.trim() === '6') {
+
+const nodetype = configuration.active;
+const config = configuration[nodetype];
+
+if (config.ipv === '6') {
   console.log('You setup ipv6 connectivity. We need to apply a workaround for dns resolution.');
   require('./ipv6-dns-workaround');
 }
 
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
 
+const saveConfig = (key, value) => {
+  config[key] = value;
+  configuration[nodetype] = config;
+  jsonfile.writeFile(file, configuration, { spaces: 1 }, (err) => {
+    if (err) {
+      console.error(err);
+      console.log(logtime(), `Could not save ${key}=${value}`, err);
+    }
+    console.log(logtime(), `Saved ${key}=${value}`);
+  });
+};
+
 // host names without domain
-let servers = local.getItem('servers').trim().split(',');
-let home = local.getItem('home').trim();
+let { servers } = config;
+let home = (config.home).trim();
 if (!home) {
   console.log('ERROR SETTING THE HOME SERVER. Please try running setup again or report the issue.');
   process.exit();
 }
 
+console.log('STARTING NODETRACKER');
 let curIdx = servers.indexOf(home);
 let curServer = home;
 const protocol = `${init.protocol}://`;
 const domain = `.${init.domain}`;
+
+// const protocol = 'http://';
+// const domain = '';
 
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
@@ -65,19 +88,19 @@ const trkver = pkg.version;
 console.log(`Tracker app version: ${trkver}`);
 
 // node type
-console.log(`Node type: ${local.getItem('nodetype')}`);
+console.log(`Node type: ${nodetype}`);
 
 // gather identity
-const nodeid = local.getItem('nodeid').trim() || null;
-const fqdn = local.getItem('fqdn').trim() || null;
-const stkaddr = local.getItem('stakeaddr').trim();
+const nodeid = config.nodeid.trim() || null;
+const fqdn = config.fqdn.trim() || null;
+const stkaddr = config.stakeaddr.trim();
 const ident = { nid: nodeid, stkaddr, fqdn };
 ident.con = { home, cur: curServer };
 
 console.log(`Node Id: ${nodeid}`);
 
 // optional category
-let cat = local.getItem('category');
+let cat = config.category;
 if (cat) {
   cat = cat.trim();
   ident.cat = cat;
@@ -103,7 +126,7 @@ const initialize = () => {
       if (initTimer) clearInterval(initTimer);
 
       ident.taddr = taddr;
-      console.log(`Secure Node t_address (not for stake)= ${taddr}`);
+      console.log(`Node t_address (not for stake)= ${taddr}`);
       SNode.ident = ident;
       console.log('Checking private z-addresses...');
       SNode.getAddrWithBal((error, result) => {
@@ -132,7 +155,7 @@ const initialize = () => {
         console.log('Using the following address for challenges');
         console.log(result.addr);
 
-        ident.email = local.getItem('email').trim();
+        ident.email = config.email;
         SNode.getNetworks(null, (err2, nets) => {
           if (!err2) {
             ident.nets = nets;
@@ -167,7 +190,7 @@ const switchServer = (server) => {
 
 const changeHome = (server) => {
   home = server;
-  local.setItem('home', server);
+  saveConfig('home', server);
   curServer = home;
   curIdx = servers.indexOf(home);
   returningHome = true;
@@ -218,7 +241,7 @@ const setSocketEvents = () => {
   socket.on('action', (data) => {
     switch (data.action) {
       case 'set nid':
-        local.setItem('nodeid', data.nid);
+        saveConfig('nodeid', data.nid);
         break;
 
       case 'get stats':
@@ -256,7 +279,7 @@ const setSocketEvents = () => {
 
       case 'updateServers':
         servers = data.servers;
-        local.setItem('servers', servers);
+        saveConfig('servers', servers);
         console.log(logtime(), 'Updated server list');
         break;
       default:

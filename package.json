@@ -1,6 +1,6 @@
 {
   "name": "zensecnodetracker",
-  "version": "0.3.0-alpha1",
+  "version": "0.3.0-rc1",
   "description": "zencash secure and super node tracking application",
   "repository": {
     "type": "git",
@@ -14,14 +14,15 @@
   "author": "Allan Dumaine for Zen Blockchain Foundation",
   "license": "MIT",
   "dependencies": {
-    "stdrpc": "^1.0.0",
+    "jsonfile": "^4.0.0",
     "node-localstorage": "^1.3.0",
     "promptly": "^2.2.0",
-    "socket.io-client": "2.0.4"
+    "socket.io-client": "2.0.4",
+    "stdrpc": "^1.0.0"
   },
   "devDependencies": {
-    "eslint": "^4.9.0",
-    "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.7.0"
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^13.0.0",
+    "eslint-plugin-import": "^2.12.0"
   }
 }

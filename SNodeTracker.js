@@ -2,20 +2,18 @@
 const { LocalStorage } = require('node-localstorage');
 const fs = require('fs');
 const StdRPC = require('stdrpc');
+const Zen = require('./zencfg');
 
-const local = new LocalStorage('./config');
-let host = local.getItem('rpchost').trim() || local.getItem('rpcbind').trim();
-const port = local.getItem('rpcport').trim();
-if (!host) host = 'localhost';
-const url = `http://${host}:${port}`;
+const zencfg = Zen.getZenConfig();
 
+const local = new LocalStorage('./config/local');
 const cfg = {
-  url,
+  url: zencfg.url,
   ssl: {
     enabled: false,
   },
-  username: local.getItem('rpcuser').trim(),
-  password: local.getItem('rpcpassword').trim(),
+  username: zencfg.rpcuser,
+  password: zencfg.rpcpassword,
 };
 
 const os = process.platform;
@@ -59,6 +57,7 @@ class SNode {
     this.configcount = 0;
     this.chalStart = null;
     this.chalRunning = false;
+    this.queueCount = 0;
     this.opTimer = null;
     this.opTimerInterval = 1000 * 2;
     this.amt = 0.0001;
@@ -107,7 +106,7 @@ class SNode {
 
   getAddrWithBal(cb) {
     const self = this;
-    const lastChalBlockNum = local.getItem('lastChalBlock').trim();
+    const lastChalBlockNum = local.getItem('lastChalBlock');
     const results = {};
     self.rpc.getinfo()
       .then((data) => {
@@ -320,7 +319,7 @@ class SNode {
               console.error(logtime(), err.message, err.response.data);
             });
         } else if (os === 'linux' && op.status === 'executing') {
-          const last = local.getItem('lastExecSec').trim() || self.defaultMemTime;
+          const last = local.getItem('lastExecSec') || self.defaultMemTime;
           if (last - elapsed < 12) {
             self.memNearEnd = self.getProcMeminfo(false);
           }
@@ -429,7 +428,7 @@ class SNode {
                 isValidBal: addrBal.valid,
                 queueDepth: count,
                 lastChalBlock: addrBal.lastChalBlock,
-                lastExecSec: local.getItem('lastExecSec').trim(),
+                lastExecSec: local.getItem('lastExecSec'),
               };
 
               if (addrBal.bal < self.minChalBal && addrBal.valid) {
@@ -516,11 +515,11 @@ class SNode {
     lines.forEach((line) => {
       const row = line.split(':');
       const item = row[0];
-      if (item === 'MemTotal' ||
-        item === 'MemFree' ||
-        item === 'MemAvailable' ||
-        item === 'SwapTotal' ||
-        item === 'SwapFree') {
+      if (item === 'MemTotal'
+        || item === 'MemFree'
+        || item === 'MemAvailable'
+        || item === 'SwapTotal'
+        || item === 'SwapFree') {
         const num = parseInt(row[1].trim().split(' ')[0], 10);
         if (display) {
           disp += `${item}: ${(num / toGb).toFixed(2)}GB  `;
