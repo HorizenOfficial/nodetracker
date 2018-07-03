@@ -91,13 +91,13 @@ console.log(`Tracker app version: ${trkver}`);
 console.log(`Node type: ${nodetype}`);
 
 // gather identity
-const nodeid = config.nodeid.trim() || null;
+const nodeid = config.nodeid || null;
 const fqdn = config.fqdn.trim() || null;
 const stkaddr = config.stakeaddr.trim();
 const ident = { nid: nodeid, stkaddr, fqdn };
 ident.con = { home, cur: curServer };
 
-console.log(`Node Id: ${nodeid}`);
+if (nodeid) console.log(`Node Id: ${nodeid}`);
 
 // optional category
 let cat = config.category;

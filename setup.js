@@ -137,9 +137,10 @@ const typeValidator = (value) => {
 
 const setHomeServer = (reg, servers) => {
   let found = false;
+  const idx = newcfg.nodetype === 'testnet' ? 2 : 1;
   for (let i = 0; i < servers.length; i += 1) {
     const srv = servers[i].split('.');
-    if (srv[1] === reg) {
+    if (srv[idx] === reg) {
       // localStorage.setItem('home', servers[i]);
       newcfg.home = servers[i];
       found = true;
@@ -247,9 +248,10 @@ if (zencfg.testnet) {
     getconfig((cfgAll) => {
       let cfg;
       if (cfgAll.cfgOld) {
+        newcfg.nodeid = cfgAll.cfgOld.nodeid;
         cfg = cfgAll.cfgOld;
       } else if (cfgAll.testnet) {
-        cfg = cfgAll.tesnet;
+        cfg = cfgAll.testnet;
       }
       promptUser(cfg, cfgAll, serverInfo);
     });
