@@ -192,15 +192,25 @@ const promptUser = (cfg, cfgAll, serverInfo) => {
     })
     .then((em) => {
       newcfg.email = em.toLowerCase().trim();
-      return promptly.prompt(`Full hostname (FQDN) used in cert. example: z1.mydomain.com ${msg3}`, { default: cfg.fqdn });
+      return promptly.prompt(
+        `Full hostname (FQDN) used in cert. example: z1.mydomain.com ${msg3}`,
+        { default: cfg.fqdn },
+      );
     })
     .then((hostname) => {
       newcfg.fqdn = hostname.trim();
-      return promptly.prompt(`IP address version used for connection - 4 or 6 ${msg4}`, { default: cfg.ipv, validator: ipValidator });
+      return promptly.prompt(
+        `IP address version used for connection - 4 or 6 ${msg4}`,
+        { default: cfg.ipv, validator: ipValidator },
+      );
     })
     .then((ipType) => {
       newcfg.ipv = ipType;
-      return promptly.choose(`Region - ${serverInfo.regPrompt} ${msg5}`, regions, { default: region, validator: regValidator });
+      return promptly.choose(
+        `Region - ${serverInfo.regPrompt} ${msg5}`,
+        regions,
+        { default: region, validator: regValidator },
+      );
     })
     .then((reg) => {
       newcfg.region = reg;
@@ -208,7 +218,7 @@ const promptUser = (cfg, cfgAll, serverInfo) => {
     })
     .then((regok) => {
       if (regok === 'error') process.exit();
-      return promptly.prompt(`Optional node category ${msg6}`, { default: cfg.category });
+      return promptly.prompt(`Optional node category - alphanumeric. ${msg6}`, { default: cfg.category, retry: false });
     })
     .then((cat) => {
       newcfg.category = cat;
@@ -260,7 +270,11 @@ if (zencfg.testnet) {
   getconfig((cfgAll) => {
     const msg1 = cfgAll.active ? ` (Existing: ${cfgAll.active}):` : ':';
     promptly
-      .choose(`Enter the node type - secure or super ${msg1}`, ['secure', 'super'], { default: cfgAll.active, validator: typeValidator })
+      .choose(
+        `Enter the node type - secure or super ${msg1}`,
+        ['secure', 'super'],
+        { default: cfgAll.active, validator: typeValidator },
+    )
       .then((ntype) => {
         newcfg.nodetype = ntype;
         let cfg;
