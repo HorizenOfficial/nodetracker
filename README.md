@@ -37,7 +37,7 @@ These are update instructions.  If you are doing a new install see the New Insta
     
    - Suggested version is 8.11.x since it will have long term support. Node.js versions greater than this have not been tested but should work.
 
-   To update or change run: 
+    To update or change run:
       * sudo n lts
 
    #### Update nodetracker
@@ -60,7 +60,7 @@ These are update instructions.  If you are doing a new install see the New Insta
       *  NODE_ENV=production npm install 
 
   3. Run setup (this will refresh the list of servers) in the tracker's config folder.
-     You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help sort nodes into groups in API calls. 
+     You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help filter your nodes (if you have many) in certain API calls. 
 
       * node setup
 
