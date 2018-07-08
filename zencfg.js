@@ -31,7 +31,6 @@ exports.getZenConfig = () => {
   const zencfg = {};
   lines.pop();
   let testnet = false;
-  let ipfound = false;
 
   lines.forEach((lineraw) => {
     const line = lineraw.trim();
@@ -39,22 +38,16 @@ exports.getZenConfig = () => {
       const idx = line.indexOf('='); // don't use split since user or pw could have =
       const key = line.substring(0, idx);
       const val = line.substring(idx + 1);
-      if (key === 'rpcbind') {
-        ipfound = true;
-        zencfg.rpchost = val.trim();
-      } else {
-        zencfg[key] = val.trim();
-      }
+      zencfg[key] = val.trim();
     }
     if (line === 'testnet=1') testnet = true;
   });
 
-  if (!ipfound) zencfg.rpchost = 'localhost';
+  zencfg.rpchost = zencfg.rpcallowip || zencfg.rpcbind || 'localhost';
   zencfg.testnet = testnet;
   // build url
-  const host = zencfg.rpchost || zencfg.rpcbind;
   const port = zencfg.rpcport;
-  const url = `http://${host}:${port}`;
+  const url = `http://${zencfg.rpchost}:${port}`;
   zencfg.url = url;
 
   return zencfg;
