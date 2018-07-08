@@ -53,9 +53,6 @@ let curServer = home;
 const protocol = `${init.protocol}://`;
 const domain = `.${init.domain}`;
 
-// const protocol = 'http://';
-// const domain = '';
-
 let socket = io(protocol + curServer + domain, { multiplex: false });
 let failoverTimer;
 
@@ -232,6 +229,14 @@ const setSocketEvents = () => {
     SNode.socket = socket;
     ident.con.cur = curServer;
     returningHome = false;
+  });
+
+  socket.on('reconnect', () => {
+    console.log(logtime(), 'Server send reconnect.');
+    socket.close();
+    socket = io(protocol + curServer + domain, { forceNew: true });
+    setSocketEvents();
+    SNode.socket = socket;
   });
 
   socket.on('msg', (msg) => {
