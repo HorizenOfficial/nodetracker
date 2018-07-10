@@ -73,7 +73,6 @@ const getSetupInfo = (serverurl, cb) => {
     res.on('end', () => {
       try {
         const data = JSON.parse(rawData);
-        //  console.log(parsedData);
         let regPrompt = '';
         data.regions.forEach((r) => {
           regPrompt += `${r[1]}(${r[0]}) `;
@@ -87,7 +86,6 @@ const getSetupInfo = (serverurl, cb) => {
           regPrompt,
           regions,
         };
-        // localStorage.setItem('servers', servers);
         newcfg.servers = servers;
         return cb(null, serverInfo);
       } catch (e) {
@@ -256,7 +254,7 @@ if (zencfg.testnet) {
     }
     newcfg.nodetype = 'testnet';
     getconfig((cfgAll) => {
-      let cfg;
+      let cfg = {};
       if (cfgAll.cfgOld) {
         newcfg.nodeid = cfgAll.cfgOld.nodeid;
         cfg = cfgAll.cfgOld;
@@ -268,22 +266,23 @@ if (zencfg.testnet) {
   });
 } else {
   getconfig((cfgAll) => {
-    const msg1 = cfgAll.active ? ` (Existing: ${cfgAll.active}):` : ':';
+    const msg1 = cfgAll.active && cfgAll.active !== 'testnet' ? ` (Existing: ${cfgAll.active}):` : ':';
     promptly
       .choose(
         `Enter the node type - secure or super ${msg1}`,
         ['secure', 'super'],
         { default: cfgAll.active, validator: typeValidator },
-    )
+      )
       .then((ntype) => {
         newcfg.nodetype = ntype;
-        let cfg;
+        let cfg = {};
         if (cfgAll.cfgOld) {
           newcfg.nodeid = cfgAll.cfgOld.nodeid;
           cfg = cfgAll.cfgOld;
         } else if (cfgAll.active === ntype) {
           cfg = cfgAll[ntype];
         }
+
         getSetupInfo(init.servers[ntype], (err, serverInfo) => {
           if (err) {
             console.error('Can not complete setup.', err);
