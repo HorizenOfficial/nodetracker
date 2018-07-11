@@ -133,6 +133,13 @@ const typeValidator = (value) => {
   throw new Error('Enter secure or super');
 };
 
+const catValidator = (value) => {
+  if (!value) {
+    throw new Error('Enter \'none\' to skip');
+  }
+  return value;
+};
+
 const setHomeServer = (reg, servers) => {
   let found = false;
   const idx = newcfg.nodetype === 'testnet' ? 2 : 1;
@@ -177,7 +184,7 @@ const promptUser = (cfg, cfgAll, serverInfo) => {
   const msg3 = cfg.fqdn ? ` (Existing: ${cfg.fqdn}):` : ':';
   const msg4 = cfg.ipv ? ` (Existing: ${cfg.ipv}):` : ':';
   const msg5 = region ? ` (Default: ${region}):` : ':';
-  const msg6 = cfg.category ? ` (Existing: ${cfg.category}):` : ':';
+
 
   console.log(`Configure for ${newcfg.nodetype} node`);
 
@@ -216,7 +223,19 @@ const promptUser = (cfg, cfgAll, serverInfo) => {
     })
     .then((regok) => {
       if (regok === 'error') process.exit();
-      return promptly.prompt(`Optional node category - alphanumeric. ${msg6}`, { default: cfg.category, retry: false });
+      console.log(' ');
+      console.log('A category may be used to uniquely identify a set of nodes.');
+      const options = { validator: catValidator, retry: false };
+      let msg6 = ':';
+      if (!cfg.category || (cfg.category && cfg.category === 'none')) {
+        msg6 = ' (Default: none):';
+        options.default = 'none';
+      } else {
+        console.log('Enter \'none\' if you do not want to use a category');
+        msg6 = ` ( Existing: ${cfg.category}):`;
+        options.default = cfg.category;
+      }
+      return promptly.prompt(`Optional node category - alphanumeric. ${msg6}`, options);
     })
     .then((cat) => {
       newcfg.category = cat;
@@ -272,7 +291,7 @@ if (zencfg.testnet) {
         `Enter the node type - secure or super ${msg1}`,
         ['secure', 'super'],
         { default: cfgAll.active, validator: typeValidator },
-      )
+    )
       .then((ntype) => {
         newcfg.nodetype = ntype;
         let cfg = {};
