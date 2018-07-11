@@ -1,6 +1,6 @@
 {
   "name": "zensecnodetracker",
-  "version": "0.3.0-rc1",
+  "version": "0.3.0",
   "description": "zencash secure and super node tracking application",
   "repository": {
     "type": "git",
