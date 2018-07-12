@@ -120,7 +120,7 @@ class SNode {
       })
       .then((addrs) => {
         if (addrs.length === 0) {
-          console.log('No private address found. Please create one using \'zen_cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
+          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
           return cb(null);
         }
         const bals = [];
