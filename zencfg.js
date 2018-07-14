@@ -46,7 +46,10 @@ exports.getZenConfig = () => {
   zencfg.rpchost = zencfg.rpcallowip || zencfg.rpcbind || 'localhost';
   zencfg.testnet = testnet;
   // build url
-  const port = zencfg.rpcport;
+  const port = zencfg.rpcport || 8231;
+  if (zencfg.testnet && !zencfg.rpcport)
+    port = 18231;
+  
   const url = `http://${zencfg.rpchost}:${port}`;
   zencfg.url = url;
 
