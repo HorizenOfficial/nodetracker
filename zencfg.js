@@ -31,6 +31,8 @@ exports.getZenConfig = () => {
   const zencfg = {};
   lines.pop();
   let testnet = false;
+  let found4 = false;
+  let found6 = false;
 
   lines.forEach((lineraw) => {
     const line = lineraw.trim();
@@ -39,8 +41,24 @@ exports.getZenConfig = () => {
       const key = line.substring(0, idx);
       const val = line.substring(idx + 1);
       zencfg[key] = val.trim();
+    } else {
+      if (line === 'testnet=1') testnet = true;
+
+      const data = line.split('=');
+      if (data[0] === 'externalip') {
+        const whichip = line.indexOf(':') !== -1 ? '6' : '4';
+        // track if found in case of multiple.  use first.
+        if (whichip === '4' && !found4) {
+          zencfg.zip4 = data[1];
+          found4 = true;
+        }
+        if (whichip === '6' && !found6) {
+          zencfg.zip6 = data[1];
+          found4 = true;
+        }
+      }
+      if (data[0] === 'port') zencfg.port = data[1];
     }
-    if (line === 'testnet=1') testnet = true;
   });
 
   zencfg.rpchost = zencfg.rpcallowip || zencfg.rpcbind || 'localhost';
@@ -50,5 +68,15 @@ exports.getZenConfig = () => {
   const url = `http://${zencfg.rpchost}:${port}`;
   zencfg.url = url;
 
+  if (!zencfg.zip4 && !zencfg.zip6) {
+    console.log('External IP address (externalip=) not found in zen.conf. At least one (IPv4 or IPv6) required for secure nodes. Both IPv4 and IPv6 required for super nodes.');
+    console.log('If multiple, add the externalip= for each address on a separate line.');
+    process.exit();
+  }
+  if (!zencfg.port) {
+    console.log('Port not found in zen.conf. Add \'port=9033\' for mainnet or \'port=19033\' for testnet');
+    process.exit();
+  }
+console.log(zencfg)
   return zencfg;
 };

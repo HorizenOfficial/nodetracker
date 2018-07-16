@@ -1,7 +1,7 @@
 # nodetracker
 #### ZenCash Secure And Super Node tracking app
 
-This is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the zencash network.
+This application is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the zencash network.
 
 Each nodetracker must have
   - a unique IP address (v4 or v6) also used by zend
@@ -9,27 +9,34 @@ Each nodetracker must have
 
   Secure Node
     - maintain a stake address with at least 42 ZEN
-    - be able to perform challenges in less than 300 seconds
-    - uptime of 92% or greater    
+    - be able to perform challenges in 300 seconds or under
+    - uptime of 92% or greater
      
   Super Node
     - a stake address with at least 500 ZEN
-    - be able to perform challenges in 150 seconds or 
+    - be able to perform challenges in 150 seconds or under
     - uptime of 96% or greater
+    - zend configured with both IPv4 and IPv6 addresses 
 
   See the [Secure Node About page](https://securenodes.zensystem.io/) or [Super Node About page](https://supernodes.zensystem.io/) on the tracking servers for full details about compliance.  
 
-## Version 0.3.0
-This version is also used for Super Nodes.  A selection is made during the setup for the type of node.  
+  See the [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for detailed configuration steps.
+
+## Version 0.3.x
+Version 0.3+ is required for Super Nodes.  A selection is made during the setup for the type of node.  
 
 Along with some additional logging and formatting, this version also replaces the bitcoin-core and zcash node modules with a stdrpc module for communication with zend.
 
-This version will check the zen configuration file to see if it is running on [testnet](https://securenodes-testnet.zensystem.io/) during the setup process.  There is no longer a need to edit the init.json file.
+This version will check the zen configuration file to see if it is running on [testnet](https://securenodes.testnet.zensystem.io/) during the setup process.  There is no longer a need to edit the init.json file.
+
+  #### 0.3.1
+    - added zen.conf requirements for externalip and port.
+    - fixed maintaining nodeid on setup rerun
 
 
  
 ### UPDATE STEPS:
-These are update instructions.  If you are doing a new install see the New Installation instructions further down or in the online [Installation Guide](https://documentation.zencash.com/display/ZEN/Installation)
+These are update instructions.  If you are doing a new install see the New Installation instructions further down or in the online [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation)
   
   #### Check the version of nodejs
    1. Run the following command
@@ -74,7 +81,7 @@ These are update instructions.  If you are doing a new install see the New Insta
 
 
 ## NEW INSTALLATION
-If you have followed [Installation Guide](https://documentation.zencash.com/display/ZEN/Installation) for creating a Secure or Super Node, you should be ready to install this on your node. 
+If you have followed [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for creating a Secure or Super Node, you should be ready to install this on your node. 
 
 You will need about 0.04 zen in the node's wallet in a private address. Send multiple small amounts (0.01 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. Alternately create an additional private z-address and split the amount between them.
 

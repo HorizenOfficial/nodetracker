@@ -279,6 +279,7 @@ if (zencfg.testnet) {
         cfg = cfgAll.cfgOld;
       } else if (cfgAll.testnet) {
         cfg = cfgAll.testnet;
+        if (cfg.nodeid) newcfg.nodeid = cfg.nodeid;
       }
       promptUser(cfg, cfgAll, serverInfo);
     });
@@ -291,7 +292,7 @@ if (zencfg.testnet) {
         `Enter the node type - secure or super ${msg1}`,
         ['secure', 'super'],
         { default: cfgAll.active, validator: typeValidator },
-    )
+      )
       .then((ntype) => {
         newcfg.nodetype = ntype;
         let cfg = {};
@@ -300,8 +301,8 @@ if (zencfg.testnet) {
           cfg = cfgAll.cfgOld;
         } else if (cfgAll.active === ntype) {
           cfg = cfgAll[ntype];
+          if (cfg.nodeid) newcfg.nodeid = cfg.nodeid;
         }
-
         getSetupInfo(init.servers[ntype], (err, serverInfo) => {
           if (err) {
             console.error('Can not complete setup.', err);
