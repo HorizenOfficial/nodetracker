@@ -54,7 +54,7 @@ exports.getZenConfig = () => {
         }
         if (whichip === '6' && !found6) {
           zencfg.zip6 = data[1];
-          found4 = true;
+          found6 = true;
         }
       }
       if (data[0] === 'port') zencfg.port = data[1];
@@ -77,6 +77,6 @@ exports.getZenConfig = () => {
     console.log('Port not found in zen.conf. Add \'port=9033\' for mainnet or \'port=19033\' for testnet');
     process.exit();
   }
-console.log(zencfg)
+
   return zencfg;
 };
