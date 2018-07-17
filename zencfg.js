@@ -54,7 +54,7 @@ exports.getZenConfig = () => {
         }
         if (whichip === '6' && !found6) {
           zencfg.zip6 = data[1];
-          found4 = true;
+          found6 = true;
         }
       }
       if (data[0] === 'port') zencfg.port = data[1];
