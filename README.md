@@ -70,8 +70,14 @@ These are update instructions.  If you are doing a new install see the New Insta
      You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help filter your nodes (if you have many) in certain API calls. 
 
       * node setup
+      Update the zen.conf file and rerun setup until it completes successfully
 
-  4. Stop the tracker application and restart it
+  4. Stop and restart zend
+     Manually: zen-cli stop && sleep 10 && zend
+     or
+     Use the you usually use like pm2 or systemd    
+
+  5. Stop the tracker application and restart it
 
       * Ctrl-c
       * node app
@@ -126,10 +132,11 @@ You will need your staking address (with at least 42 ZEN for secure or 500 ZEN f
 There is a prompt for an optional category. This allows a node operator with multiple nodes to group them together.
 
   * node setup
+  Update the zen.conf file and rerun setup until it completes successfully
 
 
 ### Start the tracking app
-Once setup is complete, start the tracker manually or with your system configuration or nodejs process monitor such as PM2.
+Once setup is complete, start the tracker manually or with your system configuration or nodejs process monitor such as PM2 or if you have it configured to use systemd.
 
   * node app
  
@@ -140,8 +147,8 @@ Use Ctrl-c to break out of the app.
  
 ### Check the node on the Tracking Server
 Check your node on one of the tracking servers using the Nodes>All Nodes page or the Nodes>My Nodes page.
-  Secure Nodes - https://securenodes.zensystem.io
-  Super Nodes - https://superenodes.zensystem.io
+  * Secure Nodes - https://securenodes.zensystem.io
+  * Super Nodes - https://supernodes.zensystem.io
   
 
 For any issues or help with a node, submit a ticket to [Support](https://support.zencash.com)
@@ -150,6 +157,8 @@ For community support, ask questions in the ZenCash Discord #securenodes channel
 
 
 Instructions on installing a monitoring tool like nodemon or PM2 may be found separately.
+
+
 
 **Locating zen.conf**
 There are two optional environment variables that may be used to locate zen.conf which is needed for rpc configuration.
