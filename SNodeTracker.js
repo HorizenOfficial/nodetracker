@@ -47,8 +47,9 @@ const rpcError = (err, txt, cb) => {
 
 
 class SNode {
-  constructor(rpc) {
+  constructor(rpc, cfgzen) {
     this.rpc = rpc;
+    this.zencfg = cfgzen;
     this.statsInterval = 1000 * 60 * 6;
     this.statsTimer = null;
     this.statsLoop = () => {
@@ -77,7 +78,7 @@ class SNode {
 
   static auto() {
     const rpc = new StdRPC(cfg);
-    return new SNode(rpc);
+    return new SNode(rpc, zencfg);
   }
 
   initialize() {
@@ -168,22 +169,7 @@ class SNode {
     self.rpc.getblockhash(chal.blocknum)
       .then((hash) => {
         self.queueCount = 0;
-        /*
-        if (hash.error) {
-          const resp = { crid: chal.crid, status: 'failed', error: 'unable to get blockhash from zen' };
-          self.chalRunning = false;
-          resp.ident = self.ident;
-          self.socket.emit('chalresp', resp);
-          console.log(logtime(), `ERROR: challenge  unable to get blockhash for challenge id ${chal.crid} block ${chal.blocknum}`);
-          console.error(logtime(), hash.error);
-          if (!self.zenDownTimer) {
-            self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
-          }
-          return;
-        }
-        */
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-
         self.rpc.getblock(hash)
           .then((block) => {
             const msgBuff = new Buffer.from(block.merkleroot);
@@ -325,14 +311,6 @@ class SNode {
           }
         }
       })
-      /*
-      .catch((err) => {
-        self.chalRunning = false;
-        console.log(logtime(), 'ERROR Challenge: could not get operation status.');
-        console.error(logtime(), err.message, err.response.data);
-        clearInterval(self.opTimer);
-      });
-      */
       .catch(err => rpcError(err, 'get operation status', (errmsg, errtype) => {
         if (errtype && errtype === 'queue') {
           console.log(logtime(), 'ERROR: challenge - waiting for room in work queue');

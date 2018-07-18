@@ -96,6 +96,13 @@ ident.con = { home, cur: curServer };
 
 if (nodeid) console.log(`Node Id: ${nodeid}`);
 
+// add zend info to ident to send to server
+ident.zend = {
+  zip4: SNode.zencfg.zip4,
+  zip6: SNode.zencfg.zip6,
+  port: SNode.zencfg.port,
+};
+
 // optional category
 let cat = config.category;
 if (cat) {
@@ -123,7 +130,7 @@ const initialize = () => {
       if (initTimer) clearInterval(initTimer);
 
       ident.taddr = taddr;
-      console.log(`Node t_address (not for stake)= ${taddr}`);
+      console.log(`Node t_address (not for stake)=${taddr}`);
       SNode.ident = ident;
       console.log('Checking private z-addresses...');
       SNode.getAddrWithBal((error, result) => {
