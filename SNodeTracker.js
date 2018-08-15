@@ -143,6 +143,9 @@ class SNode {
                   };
                   break;
                 }
+                else if (zaddr.bal <= self.minChalBal) {
+                  console.log(`Balance of ${zaddr.bal} for address ${zaddr.addr} must be greater than ${self.minChalBal}`);
+                }
               }
             }
             if (obj) return cb(null, obj);
