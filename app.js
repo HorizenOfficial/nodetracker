@@ -195,6 +195,8 @@ const switchServer = (server) => {
 const changeHome = (server) => {
   home = server;
   saveConfig('home', server);
+  const region = server.split('.')[1];
+  if (config.region !== region) saveConfig('region', region);
   curServer = home;
   curIdx = servers.indexOf(home);
   returningHome = true;
@@ -207,6 +209,14 @@ const changeHome = (server) => {
   setSocketEvents();
   SNode.socket = socket;
   returningHome = false;
+};
+
+const resetSocket = (msg) => {
+  console.log(logtime(), `Reset connection: ${msg}`);
+  socket.close();
+  socket = io(protocol + curServer + domain, { forceNew: true });
+  setSocketEvents();
+  SNode.socket = socket;
 };
 
 const setSocketEvents = () => {
@@ -239,15 +249,18 @@ const setSocketEvents = () => {
   });
 
   socket.on('reconnect', () => {
-    console.log(logtime(), 'Server send reconnect.');
-    socket.close();
-    socket = io(protocol + curServer + domain, { forceNew: true });
-    setSocketEvents();
-    SNode.socket = socket;
+    console.log(logtime(), 'Reconnect to server');
+  });
+
+  socket.on('newconnection', (msg) => {
+    resetSocket(msg);
   });
 
   socket.on('msg', (msg) => {
     console.log(logtime(), msg);
+    if (msg.indexOf('Stats received') !== -1) {
+      clearTimeout(SNode.statsAckTimer);
+    }
   });
 
   socket.on('action', (data) => {
@@ -267,6 +280,19 @@ const setSocketEvents = () => {
           }
         });
         console.log(logtime(), 'Stats: send initial stats.');
+        break;
+
+      case 'get tlsPeers':
+        SNode.getTLSPeers((err, tlsPeers) => {
+          if (err) {
+            if (ident) {
+              socket.emit('node', { type: 'down', ident });
+            }
+          } else {
+            socket.emit('node', { type: 'tlsPeers', tlsPeers, ident });
+          }
+        });
+        console.log(logtime(), 'TLS Peers: sent list');
         break;
 
       case 'get config':
@@ -294,6 +320,11 @@ const setSocketEvents = () => {
         saveConfig('servers', servers);
         console.log(logtime(), 'Updated server list');
         break;
+
+      case 'setStatInterval':
+        SNode.setStatInterval(data);
+        break;
+
       default:
       // no default
     }
@@ -313,7 +344,7 @@ const conCheck = () => {
     }
   }, 30000);
 };
-
+SNode.resetSocket = resetSocket;
 SNode.socket = socket;
 SNode.initialize();
 conCheck();

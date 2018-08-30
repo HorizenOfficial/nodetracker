@@ -50,8 +50,10 @@ class SNode {
   constructor(rpc, cfgzen) {
     this.rpc = rpc;
     this.zencfg = cfgzen;
-    this.statsInterval = 1000 * 60 * 6;
+    this.statsInterval = local.getItem('statsInterval') || 1000 * 60 * 6;
     this.statsTimer = null;
+    this.statsAckTimeout = local.getItem('statsActTimeout') || 1000 * 60 * 3;
+    this.statsAckTimer = null;
     this.statsLoop = () => {
       this.collectStats();
     };
@@ -83,6 +85,16 @@ class SNode {
 
   initialize() {
     this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
+  }
+
+  setStatInterval(data) {
+    const self = this;
+    const interval = Number(data.statint);
+    self.statsInterval = interval;
+    local.setItem('statsInterval', interval);
+    console.log(logtime(), `Stat Interval changed to ${interval}ms`);
+    clearTimeout(self.statsTimer);
+    self.initialize();
   }
 
   checkZen() {
@@ -135,18 +147,19 @@ class SNode {
               for (let i = 0; i < bals.length; i += 1) {
                 const zaddr = bals[i];
                 if (zaddr.bal && zaddr.bal > self.minChalBal) {
-                  obj = {
-                    addr: zaddr.addr,
-                    bal: zaddr.bal,
-                    valid: results.valid,
-                    lastChalBlock: lastChalBlockNum,
-                  };
-                  break;
+                  if (!obj || (obj && zaddr.bal > obj.bal)) {
+                    obj = {
+                      addr: zaddr.addr,
+                      bal: zaddr.bal,
+                      valid: results.valid,
+                      lastChalBlock: lastChalBlockNum,
+                    };
+                  }
                 }
               }
             }
             if (obj) return cb(null, obj);
-            return cb('Unable to get z-addr balance');
+            return cb('Unable to get a z-addr balance');
           });
       })
       .catch(err => rpcError(err, 'get addrwithbalance', cb));
@@ -349,6 +362,7 @@ class SNode {
         const config = {
           node, trkver, hw, mem: self.mem, nodejs, platform,
         };
+        config.statsInterval = self.statsInterval;
         self.socket.emit('node', { type: 'config', ident: self.ident, config });
       })
       .catch(err => rpcError(err, 'get config', () => { }));
@@ -371,19 +385,23 @@ class SNode {
         if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
       } else {
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-        self.getTLSPeers((error, tlsPeers) => {
-          if (error) console.log(logtime(), `Unable to get peers from zen. ${error}`);
-          const stats2 = Object.assign({}, stats);
-          let display = '';
-          Object.entries(stats2).forEach((s) => {
-            if (s !== 'tlsPeers') display += `${s[0]}:${s[1]}  `;
-          });
-          stats2.tlsPeers = tlsPeers;
-          self.socket.emit('node', { type: 'stats', stats: stats2, ident: self.ident });
-          console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
+        const stats2 = Object.assign({}, stats);
+        let display = '';
+        Object.entries(stats2).forEach((s) => {
+          display += `${s[0]}:${s[1]}  `;
         });
+        self.socket.emit('node', { type: 'stats', stats: stats2, ident: self.ident });
+        self.lastStatSent = (new Date()).getTime();
+        self.statsAckTimer = setTimeout(() => { self.missedStatsAck(); }, self.statsAckTimeout);
+        console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
       }
     });
+  }
+
+  missedStatsAck() {
+    const self = this;
+    // create the socket
+    self.resetSocket('missed stat acknowledgement from server');
   }
 
   getStats(cb) {

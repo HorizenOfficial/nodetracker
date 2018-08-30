@@ -5,7 +5,7 @@ This application is installed on a Secure Node or a Super Node to allow it to co
 
 Each nodetracker must have
   - a unique IP address (v4 or v6) also used by zend
-  - about 0.04 ZEN for challenges in one or more z-address on the node
+  - about 0.01 ZEN for challenges in one or more z-address on the node
 
   Secure Node
     - maintain a stake address with at least 42 ZEN
@@ -22,16 +22,24 @@ Each nodetracker must have
 
   See the [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for detailed configuration steps.
 
-## Version 0.3.x
-Version 0.3+ is required for Super Nodes.  A selection is made during the setup for the type of node.  
+## Version 0.4.0
 
-Along with some additional logging and formatting, this version also replaces the bitcoin-core and zcash node modules with a stdrpc module for communication with zend.
+Version 0.4.0 or higher is required for Secure Nodes.  A selection is made during the setup for the type of node.  
+Version 0.3.1 or higher is required for Super Nodes temporarily.  Watch for notices on enforcement.  
 
 This version will check the zen configuration file to see if it is running on [testnet](https://securenodes.testnet.zensystem.io/) during the setup process.  There is no longer a need to edit the init.json file.
 
   #### 0.3.1
     - added zen.conf requirements for externalip and port.
     - fixed maintaining nodeid on setup rerun
+  #### 0.4.0
+    - Remove socket reinit on reconnect
+    - Add drop socket and connect on server request
+    - Include region in move home
+    - Remove tls peers on stats
+    - Add tls peers on server request
+    - Add stat acknowledgment timeout to reset socket
+    - Add multiple zaddr check to use highest balance
 
 
  
@@ -48,7 +56,7 @@ These are update instructions.  If you are doing a new install see the New Insta
       * sudo n lts
 
    #### Update nodetracker
-   NOTE:  for backward compatibility the folder remains 'secnodetracker' even for Super Nodes.
+   NOTE:  for backward compatibility the folder can 'secnodetracker' even for Super Nodes. However if you would like to change the folder please see the upgrade section in the installation guide
 
   1. Change to the secnodetracker folder and update the tracker application. 
     This may be '~/zencash/secnodetracker' if the install guides were followed.
@@ -61,6 +69,8 @@ These are update instructions.  If you are doing a new install see the New Insta
     If git complains about overwriting a file use: git checkout -- filename
         e.g. git checkout -- package.json
     Then run the last 3 above commands again.
+
+  If upgrading from 0.3.1 to 0.4.x skip to STEP 4.  If upgrading from 0.2.1 do steps 2 & 3.
 
   2. Add node.js environment variable when updating the npm modules.This will stop the next step from installing development libraries. Install new nodejs module and remove old ones.
 
@@ -111,23 +121,25 @@ Log into your node computer or vps.  The following commands install Node.js (a j
 ### Clone this repository
 If you followed the Guides you should have a ~/zencash folder with the zen folder in it. 
 Put this repository in the zencash folder too or the folder of your choice.
-Note:  if you would like to name the folder during the clone process, append the folder name to the clone command. The default is 'secnodetracker'.
+Note:  if you would like to name the folder during the clone process, append the folder name to the clone command. The default is 'nodetracker'.
 
   * cd ~/zencash
-  * git clone https://github.com/ZencashOfficial/secnodetracker.git 
+  * git clone https://github.com/ZencashOfficial/nodetracker.git 
 
   or to specify a folder name 
-    git clone https://github.com/ZencashOfficial/secnodetracker.git nodetracker
+    git clone https://github.com/ZencashOfficial/nodetracker.git nodetracker
 
 
 ### Install the nodejs modules
   Use the environment variable to keep from installing development libraries. If a different folder was specified substitute its name
 
-   * cd secnodetracker
+   * cd nodetracker
    * NODE_ENV=production npm install
    
 ### Run setup
-You will need your staking address (with at least 42 ZEN for secure or 500 ZEN for super) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it blank).  During setup press Enter to accept the default or enter new information when prompted.  See the Note below on finding the zen.conf file if is is not in its standard location.
+You will need your staking address (with at least 42 ZEN for Secure Nodes or 500 ZEN for Super Nodes) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it blank. NOTE: an email address is required for all the 'My' pages on the tracking server and the API).  '
+
+During setup press Enter to accept the default or enter new information when prompted.  See the Note below on finding the zen.conf file if is is not in its standard location.
 
 There is a prompt for an optional category. This allows a node operator with multiple nodes to group them together.
 
