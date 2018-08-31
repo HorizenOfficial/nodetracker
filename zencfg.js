@@ -84,8 +84,7 @@ exports.getZenConfig = () => {
     process.exit();
   }
   if (!zencfg.port) {
-    console.log('Port not found in zen.conf. Add \'port=9033\' for mainnet or \'port=19033\' for testnet');
-    process.exit();
+    zencfg.port = testnet ? '19033' : '9033';
   }
 
   return zencfg;
