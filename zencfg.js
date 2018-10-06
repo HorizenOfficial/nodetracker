@@ -64,7 +64,7 @@ exports.getZenConfig = () => {
     }
   });
 
-  zencfg.rpchost = zencfg.rpcallowip || zencfg.rpcbind || 'localhost';
+  zencfg.rpchost = zencfg.rpcbind || zencfg.rpcallowip || 'localhost';
   zencfg.testnet = testnet;
   if (!zencfg.rpcport) {
     zencfg.rpcport = testnet ? '18231' : '8231';
