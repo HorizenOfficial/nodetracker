@@ -1,4 +1,4 @@
-// const { LocalStorage } = require('node-localstorage');
+const { LocalStorage } = require('node-localstorage');
 const jsonfile = require('jsonfile');
 const io = require('socket.io-client');
 const os = require('os');
@@ -9,13 +9,12 @@ const configuration = require('./config/config');
 
 const file = './config/config.json';
 
-// const local = new LocalStorage('./config');
+const local = new LocalStorage('./config/local');
 // check if setup was run
 if (!configuration) {
   console.log('Please run setup: node setup');
   process.exit();
 }
-
 
 const nodetype = configuration.active;
 const config = configuration[nodetype];
@@ -47,14 +46,13 @@ if (!home) {
   process.exit();
 }
 
-console.log('STARTING NODETRACKER');
+console.log(logtime(), 'STARTING NODETRACKER');
 let curIdx = servers.indexOf(home);
 let curServer = home;
 const protocol = `${init.protocol}://`;
 const domain = `.${init.domain}`;
 
-let socket = io(protocol + curServer + domain, { multiplex: false });
-let failoverTimer;
+let failoverTimer = null;
 
 // get cpu config
 const cpus = os.cpus();
@@ -110,10 +108,24 @@ if (cat) {
   ident.cat = cat;
 }
 
-
 let initTimer;
 let returningHome = false;
-// const errmsg = 'Unable to connect to zend. Please check the zen rpc settings and ensure zend is running';
+
+// prep connection options
+const socketOptions = {};
+socketOptions.transports = ['websocket', 'polling'];
+const savedOpts = local.getItem('socketoptions');
+if (savedOpts) {
+  const opts = JSON.parse(savedOpts);
+  Object.assign(socketOptions, opts);
+} else {
+  // defaults
+  socketOptions.reconnectionDelay = 20000;
+  socketOptions.reconnectionDelayMax = 40000;
+  socketOptions.randomizationFactor = 0.9;
+}
+let socket = io(protocol + curServer + domain, socketOptions);
+
 
 const initialize = () => {
   // check connectivity by getting the t_address.
@@ -186,7 +198,7 @@ const switchServer = (server) => {
   curIdx = nextIdx;
   console.log(logtime(), `Trying server: ${curServer}`);
   socket.close();
-  socket = io.connect(protocol + curServer + domain);
+  socket = io(protocol + curServer + domain, socketOptions);
   setSocketEvents();
   SNode.socket = socket;
   ident.con.cur = curServer;
@@ -205,16 +217,16 @@ const changeHome = (server) => {
   ident.con.home = home;
   ident.con.cur = curServer;
 
-  socket = io(protocol + curServer + domain, { forceNew: true });
+  socket = io(protocol + curServer + domain, socketOptions);
   setSocketEvents();
   SNode.socket = socket;
   returningHome = false;
 };
 
 const resetSocket = (msg) => {
-  console.log(logtime(), `Reset connection: ${msg}`);
+  console.log(logtime(), `Reset connection  ${msg || ''}`);
   socket.close();
-  socket = io(protocol + curServer + domain, { forceNew: true });
+  socket = io(protocol + curServer + domain, socketOptions);
   setSocketEvents();
   SNode.socket = socket;
 };
@@ -228,7 +240,7 @@ const setSocketEvents = () => {
 
   socket.on('disconnect', () => {
     if (!returningHome) {
-      console.log(logtime(), `No connection to ${curServer}`);
+      console.log(logtime(), `No connection to ${curServer}. Retry in ${socket.io.reconnectionDelay() / 1000} seconds`);
     }
     failoverTimer = setInterval(() => {
       switchServer();
@@ -241,7 +253,7 @@ const setSocketEvents = () => {
     returningHome = true;
     console.log(logtime(), `Returning to home server ${curServer}.`);
     socket.close();
-    socket = io(protocol + curServer + domain, { forceNew: true });
+    socket = io(protocol + curServer + domain, socketOptions);
     setSocketEvents();
     SNode.socket = socket;
     ident.con.cur = curServer;
@@ -325,6 +337,10 @@ const setSocketEvents = () => {
         SNode.setStatInterval(data);
         break;
 
+      case 'setSocketOpts':
+        local.setItem('socketoptions', JSON.stringify(data));
+        break;
+
       default:
       // no default
     }
@@ -335,7 +351,7 @@ setSocketEvents();
 const conCheck = () => {
   setInterval(() => {
     if (!socket.connected) {
-      console.log(logtime(), `No connection to server ${curServer}. Retry.`);
+      console.log(logtime(), `No connection to server ${curServer}.`);
       if (!failoverTimer) {
         failoverTimer = setInterval(() => {
           switchServer();
@@ -344,6 +360,7 @@ const conCheck = () => {
     }
   }, 30000);
 };
+
 SNode.resetSocket = resetSocket;
 SNode.socket = socket;
 SNode.initialize();
