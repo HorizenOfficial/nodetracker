@@ -48,6 +48,10 @@ const saveConfig = (key, value) => {
     });
   });
 };
+// network latency
+let pongCount = 0;
+let latencies = [];
+let latencyReset = 20;
 
 // host names without domain
 let { servers } = config;
@@ -131,9 +135,9 @@ if (savedOpts) {
   Object.assign(socketOptions, opts);
 } else {
   // defaults
-  socketOptions.reconnectionDelay = 20000;
-  socketOptions.reconnectionDelayMax = 40000;
-  socketOptions.randomizationFactor = 0.9;
+  socketOptions.reconnectionDelay = 30000;
+  socketOptions.reconnectionDelayMax = 54000;
+  socketOptions.randomizationFactor = 0.8;
 }
 let socket = io(protocol + curServer + domain, socketOptions);
 
@@ -141,6 +145,7 @@ let socket = io(protocol + curServer + domain, socketOptions);
 const initialize = () => {
   // check connectivity by getting the t_address.
   // pass identity to server on success
+  console.log('Checking t-address...');
   SNode.getPrimaryAddress((err, taddr) => {
     if (err) {
       // console.log(errmsg);
@@ -242,17 +247,28 @@ const resetSocket = (msg) => {
   SNode.socket = socket;
 };
 
+let dTime = new Date();
+let rTime;
+
+const getDiff = (dt) => {
+  const diff = (new Date() - dt) / 1000;
+  return `${diff.toFixed(1)} seconds`;
+};
+
 const setSocketEvents = () => {
   socket.on('connect', () => {
     console.log(logtime(), `Connected to server ${curServer}. Initializing...`);
+    if (rTime) rTime = null;
+    if (dTime) dTime = null;
     initialize();
     if (failoverTimer) clearInterval(failoverTimer);
   });
 
   socket.on('disconnect', () => {
     if (!returningHome) {
-      console.log(logtime(), `No connection to ${curServer}. Retry in ${socket.io.reconnectionDelay() / 1000} seconds`);
+      console.log(logtime(), `Disconnected from ${curServer}. Random retry.`);
     }
+    dTime = new Date();
     failoverTimer = setInterval(() => {
       switchServer();
     }, 70000);
@@ -269,10 +285,6 @@ const setSocketEvents = () => {
     SNode.socket = socket;
     ident.con.cur = curServer;
     returningHome = false;
-  });
-
-  socket.on('reconnect', () => {
-    console.log(logtime(), 'Reconnect to server');
   });
 
   socket.on('newconnection', (msg) => {
@@ -356,6 +368,30 @@ const setSocketEvents = () => {
       // no default
     }
   });
+  socket.on('error', (err) => {
+    console.log(logtime(), `Socket.io ERROR:  ${err.type}: ${err.message}`);
+  });
+
+  socket.on('reconnect', (num) => {
+    console.log(logtime(), 'Reconnect attempts', num, `${!rTime ? getDiff(dTime) : getDiff(rTime)}`);
+    rTime = new Date();
+  });
+
+  socket.on('reconnect_error', (err) => {
+    console.log(logtime(), `Reconnect ${err.type}: ${err.message}`);
+  });
+
+  socket.on('pong', (latency) => {
+    pongCount += 1;
+    latencies.push(latency);
+    if (pongCount >= latencyReset) {
+      const sum = latencies.reduce((tot, val) => tot + val);
+      const avg = (sum / pongCount).toFixed(0);
+      console.log(logtime(), `Server response latency average (last ${pongCount}) ${avg}ms`);
+      latencies = [];
+      pongCount = 0;
+    }
+  });
 };
 setSocketEvents();
 
@@ -366,7 +402,7 @@ const conCheck = () => {
       if (!failoverTimer) {
         failoverTimer = setInterval(() => {
           switchServer();
-        }, 61000);
+        }, 70000);
       }
     }
   }, 30000);
