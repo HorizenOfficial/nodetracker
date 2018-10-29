@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { LocalStorage } = require('node-localstorage');
 const jsonfile = require('jsonfile');
 const io = require('socket.io-client');
@@ -25,16 +26,26 @@ if (config.ipv === '6') {
 }
 
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
+const isEmpty = (obj) => {
+  if (Object.entries(obj).length > 0) return false;
+  return true;
+};
 
 const saveConfig = (key, value) => {
   config[key] = value;
   configuration[nodetype] = config;
-  jsonfile.writeFile(file, configuration, { spaces: 1 }, (err) => {
-    if (err) {
-      console.error(err);
-      console.log(logtime(), `Could not save ${key}=${value}`, err);
-    }
-    console.log(logtime(), `Saved ${key}=${value}`);
+  if (isEmpty(configuration)) {
+    console.log(logtime(), `Could not save ${key}=${value}, configuration is empty.`);
+    return;
+  }
+  fs.copyFile(file, `${file}.BACK`, () => {
+    jsonfile.writeFile(file, configuration, { spaces: 1 }, (err) => {
+      if (err) {
+        console.error(err);
+        console.log(logtime(), `Could not save ${key}=${value}`, err);
+      }
+      console.log(logtime(), `Saved ${key}=${value}`);
+    });
   });
 };
 
