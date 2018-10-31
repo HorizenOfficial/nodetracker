@@ -162,7 +162,7 @@ const setHomeServer = (reg, servers) => {
 const saveConfig = (cfg, cfgAll) => {
   const config = Object.assign({}, cfgAll);
   if (cfgAll.cfgOld) {
-    // collected from separate files. remove old fi
+    // collected from separate files. remove old
     localStorage.clear();
     delete config.cfgOld;
   }
