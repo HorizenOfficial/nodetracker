@@ -20,19 +20,14 @@ Each nodetracker must have
 
   See the [Secure Node About page](https://securenodes.zensystem.io/) or [Super Node About page](https://supernodes.zensystem.io/) on the tracking servers for full details about compliance.  
 
-  See the [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for detailed configuration steps.
+  See the [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for detailed configuration steps.
 
 ## Version 0.4.0
 
 Version 0.4.0 or higher is required for Secure Nodes.  A selection is made during the setup for the type of node.  
-Version 0.3.1 or higher is required for Super Nodes temporarily.  Watch for notices on enforcement.  
 
-This version will check the zen configuration file to see if it is running on [testnet](https://securenodes.testnet.zensystem.io/) during the setup process.  There is no longer a need to edit the init.json file.
-
-  #### 0.3.1
-    - added zen.conf requirements for externalip and port.
-    - fixed maintaining nodeid on setup rerun
   #### 0.4.0
+    - Randomize delay before reconnect
     - Remove socket reinit on reconnect
     - Add drop socket and connect on server request
     - Include region in move home
@@ -40,23 +35,28 @@ This version will check the zen configuration file to see if it is running on [t
     - Add tls peers on server request
     - Add stat acknowledgment timeout to reset socket
     - Add multiple zaddr check to use highest balance
+  #### 0.3.1
+    - added zen.conf requirements for externalip and port.
+    - fixed maintaining nodeid on setup rerun
 
 
  
 ### UPDATE STEPS:
-These are update instructions.  If you are doing a new install see the New Installation instructions further down or in the online [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation)
+These are general update instructions. For full instructions please use the [Maintenance Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136871983/Maintenance)
+
+If you are doing a new install the general New Installation instructions further down can be used but the best option is to use the online [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation)
   
   #### Check the version of nodejs
    1. Run the following command
       * node -v
     
-   - Suggested version is 8.11.x since it will have long term support. Node.js versions greater than this have not been tested but should work.
+   - Suggested version is 10.x.x  (10.13.0 is latest) since it will have long term support. Node.js versions greater than this have not been tested but should work.
 
     To update or change run:
       * sudo n lts
 
    #### Update nodetracker
-   NOTE:  for backward compatibility the folder can 'secnodetracker' even for Super Nodes. However if you would like to change the folder please see the upgrade section in the installation guide
+   NOTE:  for backward compatibility the folder can be named 'secnodetracker' even for Super Nodes. However if you would like to change the folder please see the upgrade section in the installation guide
 
   1. Change to the secnodetracker folder and update the tracker application. 
     This may be '~/zencash/secnodetracker' if the install guides were followed.
@@ -70,22 +70,22 @@ These are update instructions.  If you are doing a new install see the New Insta
         e.g. git checkout -- package.json
     Then run the last 3 above commands again.
 
-  If upgrading from 0.3.1 to 0.4.x skip to STEP 4.  If upgrading from 0.2.1 do steps 2 & 3.
 
-  2. Add node.js environment variable when updating the npm modules.This will stop the next step from installing development libraries. Install new nodejs module and remove old ones.
+  2. Add node.js environment variable when updating the npm modules. This will stop the next step from installing development libraries. Install new nodejs module and remove old ones.
 
       *  NODE_ENV=production npm install 
 
   3. Run setup (this will refresh the list of servers) in the tracker's config folder.
-     You should be able to accept all the previous values.  There are two new propmts: the node type (secure or super) and an optional category.  The category can be used to help filter your nodes (if you have many) in certain API calls. 
+     You should be able to accept all the previous values.  There are prompts to select the node type (secure or super) and an optional category.  The category can be used to help filter your nodes (if you have many) in certain API calls. 
 
       * node setup
-      Update the zen.conf file and rerun setup until it completes successfully
+      The setup process will stop if zen.conf does not have certain entries. 
+      Update the zen.conf file and rerun setup until the node setup completes successfully
 
   4. Stop and restart zend
      Manually: zen-cli stop && sleep 10 && zend
      or
-     Use the you usually use like pm2 or systemd    
+     Use the method you usually use like pm2 or systemd
 
   5. Stop the tracker application and restart it
 
@@ -97,7 +97,7 @@ These are update instructions.  If you are doing a new install see the New Insta
 
 
 ## NEW INSTALLATION
-If you have followed [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for creating a Secure or Super Node, you should be ready to install this on your node. 
+If you have followed [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for creating a Secure or Super Node, you should be ready to install this on your node. 
 
 You will need about 0.04 zen in the node's wallet in a private address. Send multiple small amounts (0.01 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. Alternately create an additional private z-address and split the amount between them.
 
@@ -112,18 +112,17 @@ These instructions should be run as the user created in the guide (not root).
 ### Install npm and Node.js
 Log into your node computer or vps.  The following commands install Node.js (a javascript virtual machine) and NPM (Node Package Manager)
 
-  - Suggested version is 8.11.x since it will have long term support. Node.js versions greater than this have not been tested but should work.
+  - Suggested version is 10.13.x (or higher 10.x) since it will have long term support. Node.js versions greater than this have not been tested but should work.
 
   * sudo apt-get install npm
   * sudo npm install -g n
   * sudo n lts
 
 ### Clone this repository
-If you followed the Guides you should have a ~/zencash folder with the zen folder in it. 
-Put this repository in the zencash folder too or the folder of your choice.
+
 Note:  if you would like to name the folder during the clone process, append the folder name to the clone command. The default is 'nodetracker'.
 
-  * cd ~/zencash
+  * cd ~/
   * git clone https://github.com/ZencashOfficial/nodetracker.git 
 
   or to specify a folder name 
@@ -137,17 +136,20 @@ Note:  if you would like to name the folder during the clone process, append the
    * NODE_ENV=production npm install
    
 ### Run setup
-You will need your staking address (with at least 42 ZEN for Secure Nodes or 500 ZEN for Super Nodes) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it blank. NOTE: an email address is required for all the 'My' pages on the tracking server and the API).  '
+You will need your staking address (with at least 42 ZEN for Secure Nodes or 500 ZEN for Super Nodes) and an email address for alerts (if you do not want alerts enter 'none' for the email address or leave it blank. NOTE: an email address is required for all the 'My' pages on the tracking server and the API).
 
-During setup press Enter to accept the default or enter new information when prompted.  See the Note below on finding the zen.conf file if is is not in its standard location.
+During setup press Enter to accept the default and enter new information when prompted.  See the Note below on finding the zen.conf file if it is not in its standard location.
 
 There is a prompt for an optional category. This allows a node operator with multiple nodes to group them together.
 
   * node setup
+  The setup process will stop if zen.conf does not have certain entries.
   Update the zen.conf file and rerun setup until it completes successfully
 
 
 ### Start the tracking app
+Before starting the nodetracker make sure the blockchain is fully synced and the stake address has the correct confirmed amount.
+
 Once setup is complete, start the tracker manually or with your system configuration or nodejs process monitor such as PM2 or if you have it configured to use systemd.
 
   * node app
@@ -155,20 +157,20 @@ Once setup is complete, start the tracker manually or with your system configura
 Follow any instructions shown on the console.  Rerun setup if needed: it will remember your previous values. 
 Use Ctrl-c to break out of the app. 
 
-**NOTE:**  There should only be 1 instance of the tracking app running at a time.  It is also best to wait to start the tracker until the blockchain is fully synced.
+**NOTE:**  There should only be 1 instance of the tracking app running at a time.
  
 ### Check the node on the Tracking Server
-Check your node on one of the tracking servers using the Nodes>All Nodes page or the Nodes>My Nodes page.
+Check your node on one of the tracking servers using the 'Nodes>All Nodes' page or the 'Nodes>My Nodes' page (after generating an API key).
   * Secure Nodes - https://securenodes.zensystem.io
   * Super Nodes - https://supernodes.zensystem.io
   
 
-For any issues or help with a node, submit a ticket to [Support](https://support.zencash.com)
+For any issues or help with a node, submit a ticket to [Support](https://support.horizen.global)
 
-For community support, ask questions in the ZenCash Discord #securenodes channel. 
+For community support, ask questions in the Horizen Discord [#node_tech_support](https://discordapp.com/invite/Hu5mQxR) channel. 
 
 
-Instructions on installing a monitoring tool like nodemon or PM2 may be found separately.
+Instructions on installing a monitoring tool like nodemon or PM2 may be found separately. The suggested monitoring method is in the Installation Guide
 
 
 
@@ -184,8 +186,4 @@ There are two optional environment variables that may be used to locate zen.conf
       - oshome + "/.zen/zen.conf";
       - oshome + "/zencash/.zen/zen.conf";
       - oshome + "/AppData/Roaming/Zen/zen.conf";
-
-
-  
-
-
+      
