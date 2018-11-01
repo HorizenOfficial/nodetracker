@@ -218,6 +218,7 @@ const switchServer = (server) => {
   console.log(logtime(), `Trying server: ${curServer}`);
   socket.close();
   socket = io(protocol + curServer + domain, socketOptions);
+  /* eslint-disable-next-line no-use-before-define */
   setSocketEvents();
   SNode.socket = socket;
   ident.con.cur = curServer;
@@ -237,6 +238,7 @@ const changeHome = (server) => {
   ident.con.cur = curServer;
 
   socket = io(protocol + curServer + domain, socketOptions);
+  /* eslint-disable-next-line no-use-before-define */
   setSocketEvents();
   SNode.socket = socket;
   returningHome = false;
@@ -246,6 +248,7 @@ const resetSocket = (msg) => {
   console.log(logtime(), `Reset connection  ${msg || ''}`);
   socket.close();
   socket = io(protocol + curServer + domain, socketOptions);
+  /* eslint-disable-next-line no-use-before-define */
   setSocketEvents();
   SNode.socket = socket;
 };
@@ -354,6 +357,7 @@ const setSocketEvents = () => {
         break;
 
       case 'updateServers':
+        /* eslint-disable-next-line prefer-destructuring */
         servers = data.servers;
         saveConfig('servers', servers);
         console.log(logtime(), 'Updated server list');
