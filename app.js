@@ -370,7 +370,7 @@ const setSocketEvents = () => {
       case 'setSocketOpts':
         local.setItem('socketoptions', JSON.stringify(data));
         break;
-      
+
       case 'setCheckInOpts':
         checkIn = data
         break
