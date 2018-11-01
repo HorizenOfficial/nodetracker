@@ -316,4 +316,3 @@ if (zencfg.testnet) {
       });
   });
 }
-// });
