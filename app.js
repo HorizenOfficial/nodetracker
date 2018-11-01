@@ -20,6 +20,9 @@ if (!configuration) {
 const nodetype = configuration.active;
 const config = configuration[nodetype];
 
+const checkIn = { enabled: false, timeout: 5000 };
+let checkInsMissed = 0;
+
 if (config.ipv === '6') {
   console.log('You setup ipv6 connectivity. We need to apply a workaround for dns resolution.');
   require('./ipv6-dns-workaround');
@@ -48,10 +51,10 @@ const saveConfig = (key, value) => {
     });
   });
 };
-// network latency
+// socket latency
 let pongCount = 0;
 let latencies = [];
-let latencyReset = 20;
+const latencyReset = 20;
 
 // host names without domain
 let { servers } = config;
@@ -363,6 +366,10 @@ const setSocketEvents = () => {
       case 'setSocketOpts':
         local.setItem('socketoptions', JSON.stringify(data));
         break;
+      
+      case 'setCheckInOpts':
+        checkIn = data
+        break
 
       default:
       // no default
@@ -404,6 +411,19 @@ const conCheck = () => {
           switchServer();
         }, 70000);
       }
+    } else if (checkIn.enabled) {
+      // application ping/pong
+      checkInsMissed += 1;
+      socket.emit('checkIn', 1, (resp) => {
+        if (resp.server !== curServer) console.log(logtime(), `Actually connected to ${resp.server}`);
+        checkInsMissed = 0;
+      });
+      setTimeout(() => {
+        if (checkInsMissed >= 2) {
+          console.log(logtime(), 'Server does not appear to be responding. Resetting connection');
+          resetSocket();
+        }
+      }, checkIn.timeout);
     }
   }, 30000);
 };
