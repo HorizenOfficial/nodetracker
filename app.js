@@ -372,8 +372,8 @@ const setSocketEvents = () => {
         break;
 
       case 'setCheckInOpts':
-        checkIn = data
-        break
+        checkIn = data;
+        break;
 
       default:
       // no default
