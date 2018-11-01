@@ -34,8 +34,9 @@ exports.getZenConfig = () => {
     process.exit();
   }
 
-  const zencfg = {};
   lines.pop();
+
+  const zencfg = {};
   let testnet = false;
   let found4 = false;
   let found6 = false;
