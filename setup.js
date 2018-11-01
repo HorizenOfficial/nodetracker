@@ -1,7 +1,7 @@
-const jsonfile = require('jsonfile');
-const promptly = require('promptly');
-const http = require('https');
-const { LocalStorage } = require('node-localstorage');
+import jsonfile from 'jsonfile';
+import promptly from 'promptly';
+import http from 'https';
+import { LocalStorage } from 'node-localstorage';
 
 const localStorage = new LocalStorage('./config');
 const Zen = require('./zencfg');
