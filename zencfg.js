@@ -8,21 +8,27 @@ oshome = process.env.ZEN_HOME || oshome;
 
 exports.getZenConfig = () => {
   console.log('Retrieving zen rpc config....');
-  let lines;
+  let lines = [];
   try {
-    const path1 = `${oshome}/.zen/zen.conf`;
-    const path2 = `${oshome}/zencash/.zen/zen.conf`;
-    const path3 = `${oshome}/AppData/Roaming/Zen/zen.conf`;
+    const paths = [
+      process.env.ZENCONF,
+      `${oshome}/.zen/zen.conf`,
+      `${oshome}/zencash/.zen/zen.conf`,
+      `${oshome}/AppData/Roaming/Zen/zen.conf`,
+    ];
 
-    if (process.env.ZENCONF) {
-      lines = fs.readFileSync(process.env.ZENCONF, 'utf8').split('\n');
-    } else if (fs.existsSync(path1)) {
-      lines = fs.readFileSync(path1, 'utf8').split('\n');
-    } else if (fs.existsSync(path2)) {
-      lines = fs.readFileSync(path2, 'utf8').split('\n');
-    } else if (fs.existsSync(path3)) {
-      lines = fs.readFileSync(path3, 'utf8').split('\n');
-    }
+    paths.forEach((path) => {
+      if (path && fs.existsSync(path)) {
+        lines = fs.readFileSync(path, 'utf8').split('\n');
+
+        // exit early
+        if (lines.length) {
+          return false;
+        }
+      }
+
+      return true; // make eslint happy
+    });
   } catch (e) {
     console.log('ERROR finding or reading zen.conf file. Make sure the zen secure node is set up properly.');
     process.exit();
