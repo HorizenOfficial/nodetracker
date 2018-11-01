@@ -20,7 +20,7 @@ if (!configuration) {
 const nodetype = configuration.active;
 const config = configuration[nodetype];
 
-const checkIn = { enabled: false, timeout: 5000 };
+let checkIn = { enabled: false, timeout: 5000 };
 let checkInsMissed = 0;
 
 if (config.ipv === '6') {
