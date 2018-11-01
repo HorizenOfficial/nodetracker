@@ -81,7 +81,8 @@ exports.getZenConfig = () => {
     process.exit();
   }
   if (!zencfg.zip4 && !zencfg.zip6) {
-    console.log('External IP address (externalip=) not found in zen.conf. At least one (IPv4 or IPv6) required for secure nodes. Both IPv4 and IPv6 required for super nodes.');
+    console.log('External IP address (externalip=) not found in zen.conf. At least one (IPv4 or IPv6) required for '
+      + 'secure nodes. Both IPv4 and IPv6 required for super nodes.');
     console.log('If multiple, add the externalip= for each address on a separate line.');
     process.exit();
   }
