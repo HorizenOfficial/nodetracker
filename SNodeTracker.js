@@ -57,7 +57,6 @@ class SNode {
     this.statsLoop = () => {
       this.collectStats();
     };
-    this.configcount = 0;
     this.chalStart = null;
     this.chalRunning = false;
     this.queueCount = 0;
