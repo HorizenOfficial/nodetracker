@@ -4,7 +4,7 @@
   "description": "horizen secure and super node tracking application",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZencashOfficial/secnodetracker"
+    "url": "https://github.com/ZencashOfficial/nodetracker"
   },
   "main": "app.js",
   "scripts": {
