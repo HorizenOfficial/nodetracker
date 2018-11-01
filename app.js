@@ -29,10 +29,7 @@ if (config.ipv === '6') {
 }
 
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
-const isEmpty = (obj) => {
-  if (Object.entries(obj).length > 0) return false;
-  return true;
-};
+const isEmpty = obj => Object.entries(obj).length <= 0;
 
 const saveConfig = (key, value) => {
   config[key] = value;
