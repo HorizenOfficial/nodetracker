@@ -74,8 +74,7 @@ exports.getZenConfig = () => {
   }
 
   // build url
-  const url = `http://${zencfg.rpchost}:${zencfg.rpcport}`;
-  zencfg.url = url;
+  zencfg.url = `http://${zencfg.rpchost}:${zencfg.rpcport}`;
 
   if (foundMax) {
     console.log('Found maxconnections in zen.conf.  Please remove.');
