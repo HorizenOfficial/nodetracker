@@ -129,18 +129,16 @@ if (cat) {
 let initTimer;
 let returningHome = false;
 
-// prep connection options
-const socketOptions = {};
+// prep default connection options
+const socketOptions = {
+  reconnectionDelay: 30000,
+  reconnectionDelayMax: 54000,
+  randomizationFactor: 0.8,
+};
 socketOptions.transports = ['websocket', 'polling'];
 const savedOpts = local.getItem('socketoptions');
 if (savedOpts) {
-  const opts = JSON.parse(savedOpts);
-  Object.assign(socketOptions, opts);
-} else {
-  // defaults
-  socketOptions.reconnectionDelay = 30000;
-  socketOptions.reconnectionDelayMax = 54000;
-  socketOptions.randomizationFactor = 0.8;
+  Object.assign(socketOptions, JSON.parse(savedOpts));
 }
 let socket = io(protocol + curServer + domain, socketOptions);
 
