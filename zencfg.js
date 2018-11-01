@@ -50,14 +50,17 @@ exports.getZenConfig = () => {
           const whichip = line.indexOf(':') !== -1 ? '6' : '4';
           // track if found in case of multiple.  use first.
           if (whichip === '4' && !found4) {
+            /* eslint-disable-next-line prefer-destructuring */
             zencfg.zip4 = data[1];
             found4 = true;
           }
           if (whichip === '6' && !found6) {
+            /* eslint-disable-next-line prefer-destructuring */
             zencfg.zip6 = data[1];
             found6 = true;
           }
         }
+        /* eslint-disable-next-line prefer-destructuring */
         if (data[0] === 'port') zencfg.port = data[1];
         if (data[0] === 'maxconnections') foundMax = true;
       }
