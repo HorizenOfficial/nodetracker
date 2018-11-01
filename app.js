@@ -1,22 +1,26 @@
-const fs = require('fs');
-const { LocalStorage } = require('node-localstorage');
-const jsonfile = require('jsonfile');
-const io = require('socket.io-client');
-const os = require('os');
-const SNode = require('./SNodeTracker').auto();
-const pkg = require('./package.json');
-const init = require('./init');
-const configuration = require('./config/config');
+import fs from 'fs';
+import { LocalStorage } from 'node-localstorage';
+import jsonfile from 'jsonfile';
+import os from 'os';
+import io from 'socket.io-client';
+import SNodeTracker from './SNodeTracker';
+import pkg from './package.json';
+import init from './init';
+import applyIPv6DnsWorkaround from './ipv6-dns-workaround';
 
-const file = './config/config.json';
+const SNode = SNodeTracker.auto();
+
+const configJsonFile = './config/config.json';
 
 const local = new LocalStorage('./config/local');
+
 // check if setup was run
-if (!configuration) {
+if (!fs.existsSync(configJsonFile)) {
   console.log('Please run setup: node setup');
   process.exit();
 }
 
+const configuration = JSON.parse(fs.readFileSync(configJsonFile, 'utf8'));
 const nodetype = configuration.active;
 const config = configuration[nodetype];
 
@@ -25,7 +29,7 @@ let checkInsMissed = 0;
 
 if (config.ipv === '6') {
   console.log('You setup ipv6 connectivity. We need to apply a workaround for dns resolution.');
-  require('./ipv6-dns-workaround');
+  applyIPv6DnsWorkaround();
 }
 
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
@@ -38,8 +42,8 @@ const saveConfig = (key, value) => {
     console.log(logtime(), `Could not save ${key}=${value}, configuration is empty.`);
     return;
   }
-  fs.copyFile(file, `${file}.BACK`, () => {
-    jsonfile.writeFile(file, configuration, { spaces: 1 }, (err) => {
+  fs.copyFile(configJsonFile, `${configJsonFile}.BACK`, () => {
+    jsonfile.writeFile(configJsonFile, configuration, { spaces: 1 }, (err) => {
       if (err) {
         console.error(err);
         console.log(logtime(), `Could not save ${key}=${value}`, err);
