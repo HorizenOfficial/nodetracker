@@ -16,7 +16,8 @@ const cfg = {
 };
 
 const os = process.platform;
-const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
+const logtime = () => `${(new Date()).toISOString()
+  .replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
 const rpcError = (err, txt, cb) => {
   // response data may be an object or string
   let msg;
@@ -132,7 +133,8 @@ class SNode {
       })
       .then((addrs) => {
         if (addrs.length === 0) {
-          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
+          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\' and send at '
+            + 'least 0.04 ZEN for challenges split into 4 or more transactions');
           return cb(null);
         }
         const bals = [];
@@ -198,7 +200,8 @@ class SNode {
 
               const zaddr = result.addr;
               if (result.bal === 0) {
-                console.log(logtime(), 'Challenge private address balance is 0 at the moment. Cannot perform challenge');
+                console.log(logtime(), 'Challenge private address balance is 0 at the moment. '
+                  + 'Cannot perform challenge');
               }
               console.log(`Using ${zaddr} for challenge. bal=${result.bal}`);
               if (zaddr && result.bal > 0) {
@@ -466,7 +469,8 @@ class SNode {
         for (let i = 0; i < data.length; i += 1) {
           const p = data[i];
           if (p.inbound === false) {
-            const ip = p.addr.indexOf(']') !== -1 ? p.addr.substr(1, p.addr.indexOf(']') - 1) : p.addr.substr(0, p.addr.indexOf(':'));
+            const ip = p.addr.indexOf(']') !== -1 ? p.addr.substr(1, p.addr.indexOf(']') - 1)
+              : p.addr.substr(0, p.addr.indexOf(':'));
             const peer = { ip, tls: p.tls_verified };
             peers.push(peer);
           }
