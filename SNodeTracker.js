@@ -1,8 +1,7 @@
-
-const { LocalStorage } = require('node-localstorage');
-const fs = require('fs');
-const StdRPC = require('stdrpc');
-const Zen = require('./zencfg');
+import { LocalStorage } from 'node-localstorage';
+import fs from 'fs';
+import StdRPC from 'stdrpc';
+import Zen from './zencfg';
 
 const zencfg = Zen.getZenConfig();
 
