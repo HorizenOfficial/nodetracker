@@ -17,17 +17,12 @@ exports.getZenConfig = () => {
       `${oshome}/AppData/Roaming/Zen/zen.conf`,
     ];
 
-    paths.forEach((path) => {
+    paths.some((path) => {
       if (path && fs.existsSync(path)) {
         lines = fs.readFileSync(path, 'utf8').split('\n');
-
-        // exit early
-        if (lines.length) {
-          return false;
-        }
       }
 
-      return true; // make eslint happy
+      return lines.length > 0; // exits early if we found the config file
     });
   } catch (e) {
     console.log('ERROR finding or reading zen.conf file. Make sure the zen secure node is set up properly.');
