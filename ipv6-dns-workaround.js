@@ -1,4 +1,4 @@
-import dns from 'dns';
+const dns = require('dns');
 
 export default function applyWorkaround() {
   const { lookup } = dns;

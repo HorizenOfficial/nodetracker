@@ -1,12 +1,12 @@
-import fs from 'fs';
-import { LocalStorage } from 'node-localstorage';
-import jsonfile from 'jsonfile';
-import os from 'os';
-import io from 'socket.io-client';
-import SNodeTracker from './SNodeTracker';
-import pkg from './package.json';
-import init from './init';
-import applyIPv6DnsWorkaround from './ipv6-dns-workaround';
+const fs = require('fs');
+const { LocalStorage } = require('node-localstorage');
+const jsonfile = require('jsonfile');
+const os = require('os');
+const io = require('socket.io-client');
+const SNodeTracker = require('./SNodeTracker');
+const pkg = require('./package');
+const init = require('./init');
+const applyIPv6DnsWorkaround = require('./ipv6-dns-workaround');
 
 const SNode = SNodeTracker.auto();
 
