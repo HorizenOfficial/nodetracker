@@ -217,10 +217,10 @@ const switchServer = (server) => {
   curIdx = nextIdx;
   console.log(logtime(), `Trying server: ${curServer}`);
   socket.close();
+  ident.con.cur = curServer;
   socket = io(protocol + curServer + domain, socketOptions);
   setSocketEvents();
   SNode.socket = socket;
-  ident.con.cur = curServer;
 };
 
 const changeHome = (server) => {
@@ -283,10 +283,10 @@ const setSocketEvents = () => {
     returningHome = true;
     console.log(logtime(), `Returning to home server ${curServer}.`);
     socket.close();
+    ident.con.cur = curServer;
     socket = io(protocol + curServer + domain, socketOptions);
     setSocketEvents();
     SNode.socket = socket;
-    ident.con.cur = curServer;
     returningHome = false;
   });
 
