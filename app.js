@@ -219,8 +219,8 @@ const switchServer = (server) => {
   socket.close();
   ident.con.cur = curServer;
   socket = io(protocol + curServer + domain, socketOptions);
-  setSocketEvents();
   SNode.socket = socket;
+  setSocketEvents();
 };
 
 const changeHome = (server) => {
@@ -235,19 +235,31 @@ const changeHome = (server) => {
   socket.close();
   ident.con.home = home;
   ident.con.cur = curServer;
-
   socket = io(protocol + curServer + domain, socketOptions);
-  setSocketEvents();
   SNode.socket = socket;
+  setSocketEvents();
   returningHome = false;
 };
+
+const returnHome = () => {
+  curServer = home;
+  curIdx = servers.indexOf(home);
+  returningHome = true;
+  console.log(logtime(), `Returning to home server ${curServer}.`);
+  socket.close();
+  ident.con.cur = curServer;
+  socket = io(protocol + curServer + domain, socketOptions);
+  SNode.socket = socket;
+  setSocketEvents();
+  returningHome = false;
+}
 
 const resetSocket = (msg) => {
   console.log(logtime(), `Reset connection  ${msg || ''}`);
   socket.close();
   socket = io(protocol + curServer + domain, socketOptions);
-  setSocketEvents();
   SNode.socket = socket;
+  setSocketEvents();
 };
 
 let dTime = new Date();
@@ -278,16 +290,7 @@ const setSocketEvents = () => {
   });
 
   socket.on('returnhome', () => {
-    curServer = home;
-    curIdx = servers.indexOf(home);
-    returningHome = true;
-    console.log(logtime(), `Returning to home server ${curServer}.`);
-    socket.close();
-    ident.con.cur = curServer;
-    socket = io(protocol + curServer + domain, socketOptions);
-    setSocketEvents();
-    SNode.socket = socket;
-    returningHome = false;
+    returnHome();
   });
 
   socket.on('newconnection', (msg) => {
