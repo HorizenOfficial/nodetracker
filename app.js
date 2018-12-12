@@ -131,7 +131,7 @@ let returningHome = false;
 
 // prep connection options
 const socketOptions = {};
-socketOptions.transports = ['websocket', 'polling'];
+socketOptions.transports = ['websocket'];
 const savedOpts = local.getItem('socketoptions');
 if (savedOpts) {
   const opts = JSON.parse(savedOpts);
