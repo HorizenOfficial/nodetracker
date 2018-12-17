@@ -22,19 +22,24 @@ Each nodetracker must have
 
   See the [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for detailed configuration steps.
 
-## Version 0.4.0
-
-Version 0.4.0 or higher is required for Secure Nodes.  A selection is made during the setup for the type of node.  
+## Changes
 
   #### 0.4.0
     - Randomize delay before reconnect
     - Remove socket reinit on reconnect
     - Add drop socket and connect on server request
     - Include region in move home
-    - Remove tls peers on stats
+    - Remove tls peers on stats check
     - Add tls peers on server request
-    - Add stat acknowledgment timeout to reset socket
+    - Add stat acknowledgment random timeouts before reset socket
+    - Add Save application settings to local update from tracking server
     - Add multiple zaddr check to use highest balance
+    - Add latency check based on socket level ping/pong
+    - Add periodic ‘checkIn’ (ping/pong) at application level
+    - Add error check and retry timer on failure to get zaddress balance
+    - Save application settings to local and allow updates from server
+    - Add ipv6 lookup family to ipv6 dns workaround (credit to emminer - thanks!)
+
   #### 0.3.1
     - added zen.conf requirements for externalip and port.
     - fixed maintaining nodeid on setup rerun
@@ -50,7 +55,7 @@ If you are doing a new install the general New Installation instructions further
    1. Run the following command
       * node -v
     
-   - Suggested version is 10.x.x  (10.13.0 is latest) since it will have long term support. Node.js versions greater than this have not been tested but should work.
+   - Suggested version is 10.x.x since it will have long term support. Node.js versions greater than this have not been tested but may work.
 
     To update or change run:
       * sudo n lts
@@ -75,19 +80,7 @@ If you are doing a new install the general New Installation instructions further
 
       *  NODE_ENV=production npm install 
 
-  3. Run setup (this will refresh the list of servers) in the tracker's config folder.
-     You should be able to accept all the previous values.  There are prompts to select the node type (secure or super) and an optional category.  The category can be used to help filter your nodes (if you have many) in certain API calls. 
-
-      * node setup
-      The setup process will stop if zen.conf does not have certain entries. 
-      Update the zen.conf file and rerun setup until the node setup completes successfully
-
-  4. Stop and restart zend
-     Manually: zen-cli stop && sleep 10 && zend
-     or
-     Use the method you usually use like pm2 or systemd
-
-  5. Stop the tracker application and restart it
+  3. Stop the tracker application and restart it
 
       * Ctrl-c
       * node app
