@@ -1,10 +1,10 @@
 {
-  "name": "zensecnodetracker",
-  "version": "0.4.0-beta2",
+  "name": "zennodetracker",
+  "version": "0.4.0-rc1",
   "description": "horizen secure and super node tracking application",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZencashOfficial/secnodetracker"
+    "url": "https://github.com/ZencashOfficial/nodetracker"
   },
   "main": "app.js",
   "scripts": {
@@ -14,14 +14,15 @@
   "author": "Allan Dumaine for Zen Blockchain Foundation",
   "license": "MIT",
   "dependencies": {
-    "jsonfile": "^4.0.0",
+    "backo": "^1.1.0",
+    "jsonfile": "^5.0.0",
     "node-localstorage": "^1.3.0",
     "promptly": "^2.2.0",
-    "socket.io-client": "^2.1.1",
+    "socket.io-client": "^2.2.0",
     "stdrpc": "^1.0.0"
   },
   "devDependencies": {
-    "eslint": "^5.9.0",
+    "eslint": "^5.10.0",
     "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.12.0"
   }
