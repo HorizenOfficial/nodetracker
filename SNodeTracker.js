@@ -2,6 +2,8 @@
 const { LocalStorage } = require('node-localstorage');
 const fs = require('fs');
 const StdRPC = require('stdrpc');
+const Backoff = require('backo2');
+
 const Zen = require('./zencfg');
 
 const zencfg = Zen.getZenConfig();
@@ -45,18 +47,42 @@ const rpcError = (err, txt, cb) => {
   return cb(err.message);
 };
 
+// config
+const savedCfg = local.getItem('statscfg');
+const statCfg = {};
+if (savedCfg) {
+  const scfg = JSON.parse(savedCfg);
+  Object.assign(statCfg, scfg);
+} else {
+  statCfg.statsAckBackoff = {
+    jitter: 0.800000,
+    max: 120000,
+    min: 1200,
+  };
+  statCfg.statsAckTimeout = 6000;
+  statCfg.statsInterval = 360000;
+  statCfg.statsRetryMax = 3;
+}
+
 
 class SNode {
   constructor(rpc, cfgzen) {
     this.rpc = rpc;
     this.zencfg = cfgzen;
-    this.statsInterval = local.getItem('statsInterval') || 1000 * 60 * 6;
+    this.statsCfg = statCfg;
+    // this.statsInterval = local.getItem('statsInterval') || 1000 * 60 * 4;
     this.statsTimer = null;
-    this.statsAckTimeout = local.getItem('statsActTimeout') || 1000 * 60 * 3;
+    this.statsTimerRunning = false;
+   // this.statsAckTimeout = local.getItem('statsAckTimeout') || 1000 * 6;
     this.statsAckTimer = null;
+   // this.statsRetryMax = 3;
+    this.statsRetryCount = 0;
+    this.statsRetryTimer = null;
+    this.statAckBackoff = new Backoff(this.statsCfg.statsAckBackoff);
     this.statsLoop = () => {
       this.collectStats();
     };
+    this.statsLastSentTime = null;
     this.configcount = 0;
     this.chalStart = null;
     this.chalRunning = false;
@@ -70,7 +96,7 @@ class SNode {
     this.memBefore = {};
     this.memNearEnd = {};
     this.waiting = false;
-    this.zenDownInterval = 1000 * 61;
+    this.zenDownInterval = 1000 * 60;
     this.zenDownTimer = null;
     this.zenDownLoop = () => {
       this.checkZen();
@@ -84,15 +110,14 @@ class SNode {
   }
 
   initialize() {
-    this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
+    this.statsTimer = setInterval(this.statsLoop, this.statsCfg.statsInterval);
+    this.statsTimerRunning = true;
   }
 
-  setStatInterval(data) {
+  restartStatTimer(statconfig) {
     const self = this;
-    const interval = Number(data.statint);
-    self.statsInterval = interval;
-    local.setItem('statsInterval', interval);
-    console.log(logtime(), `Stat Interval changed to ${interval}ms`);
+    self.statsCfg = statconfig;
+    console.log(logtime(), `Stat Interval changed to ${statconfig.statsInterval}ms`);
     clearTimeout(self.statsTimer);
     self.initialize();
   }
@@ -362,7 +387,7 @@ class SNode {
         const config = {
           node, trkver, hw, mem: self.mem, nodejs, platform,
         };
-        config.statsInterval = self.statsInterval;
+        config.statsInterval = self.statsCfg.statsInterval;
         self.socket.emit('node', { type: 'config', ident: self.ident, config });
       })
       .catch(err => rpcError(err, 'get config', () => { }));
@@ -390,18 +415,40 @@ class SNode {
         Object.entries(stats2).forEach((s) => {
           display += `${s[0]}:${s[1]}  `;
         });
-        self.socket.emit('node', { type: 'stats', stats: stats2, ident: self.ident });
-        self.lastStatSent = (new Date()).getTime();
-        self.statsAckTimer = setTimeout(() => { self.missedStatsAck(); }, self.statsAckTimeout);
-        console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
+        const reply = {
+          type: 'stats',
+          stats: stats2,
+          ident: self.ident,
+          sots: self.socketOptions.ts,
+          scts: self.statsCfg.ts,
+          gts: self.genCfg.ts,
+        };
+        self.socket.emit('node', reply);
+        self.statsLastSentTime = (new Date()).getTime();
+        self.statsAckTimer = setTimeout(() => { self.missedStatsAck(); }, self.statsCfg.statsAckTimeout);
+        console.log(logtime(), `Stat check: server:${self.ident.con.cur} ${display}`);
       }
     });
   }
 
   missedStatsAck() {
     const self = this;
-    // create the socket
-    self.resetSocket('missed stat acknowledgement from server');
+    self.statsRetryCount += 1;
+    if (self.statAckBackoff.attempts === 0) self.statAckBackoff.attempts = 1;
+    if (self.statsRetryCount > self.statsCfg.statsRetryMax) {
+      console.log(logtime(), `Stat check: no response from server count: ${self.statsRetryCount}. Reconnecting.`);
+      self.statsRetryCount = 0;
+      self.resetSocket('no stat check response from server');
+      self.statAckBackoff.reset();
+    } else {
+      clearTimeout(self.statsTimer);
+      self.statsTimerRunning = false;
+      const timeout = self.statAckBackoff.duration();
+      self.statsRetryTimer = setTimeout(() => { self.collectStats(); }, timeout);
+      const msg = self.statsRetryCount > self.statsCfg.statsRetryMax ? '' : `in ${(timeout / 1000).toFixed(0)}s`;
+      console.log(logtime(), `Stat check: no response from server count: ${self.statsRetryCount}.`
+        + ` Retry ${msg}`);
+    }
   }
 
   getStats(cb) {
