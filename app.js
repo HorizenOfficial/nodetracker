@@ -17,11 +17,30 @@ if (!configuration) {
   process.exit();
 }
 
+// get user settings
 const nodetype = configuration.active;
 const config = configuration[nodetype];
 
-let checkIn = { enabled: false, timeout: 5000 };
-let checkInsMissed = 0;
+// get general app settings
+const savedSettings = local.getItem('gensettings');
+let genCfg = {};
+
+// get saved or set defaults. can be updated from server
+if (savedSettings) {
+  const cfg = JSON.parse(savedSettings);
+  Object.assign(genCfg, cfg);
+} else {
+  genCfg.initInterval = 20000;
+  genCfg.conCheckInterval = 30000;
+  genCfg.failoverInterval = 70000;
+  genCfg.checkIn = {
+    enabled: false,
+    timeout: 5000,
+    max: 2,
+  };
+  local.setItem('gensettings', JSON.stringify(genCfg));
+}
+SNode.genCfg = genCfg;
 
 if (config.ipv === '6') {
   console.log('You setup ipv6 connectivity. We need to apply a workaround for dns resolution.');
@@ -51,6 +70,7 @@ const saveConfig = (key, value) => {
     });
   });
 };
+
 // socket latency
 let pongCount = 0;
 let latencies = [];
@@ -67,10 +87,18 @@ if (!home) {
 console.log(logtime(), 'STARTING NODETRACKER');
 let curIdx = servers.indexOf(home);
 let curServer = home;
-const protocol = `${init.protocol}://`;
-const domain = `.${init.domain}`;
+let protocol = `${init.protocol}://`;
+let domain = `.${init.domain}`;
+if (process.env.DEV) {
+  protocol = process.env.DEV_PROTOCOL;
+  domain = process.env.DEV_DOMAIN;
+}
 
 let failoverTimer = null;
+let conCheckTimer = null;
+let initTimer = null;
+let returningHome = false;
+let checkInsMissed = 0;
 
 // get cpu config
 const cpus = os.cpus();
@@ -126,36 +154,31 @@ if (cat) {
   ident.cat = cat;
 }
 
-let initTimer;
-let returningHome = false;
-
-// prep connection options
+// connection options
 const socketOptions = {};
-socketOptions.transports = ['websocket'];
 const savedOpts = local.getItem('socketoptions');
 if (savedOpts) {
   const opts = JSON.parse(savedOpts);
   Object.assign(socketOptions, opts);
 } else {
   // defaults
+  socketOptions.transports = ['websocket'];
   socketOptions.reconnectionDelay = 30000;
-  socketOptions.reconnectionDelayMax = 54000;
+  socketOptions.reconnectionDelayMax = 60000;
   socketOptions.randomizationFactor = 0.8;
 }
 let socket = io(protocol + curServer + domain, socketOptions);
 
-
 const initialize = () => {
   // check connectivity by getting the t_address.
   // pass identity to server on success
-  console.log('Checking t-address...');
+  console.log(logtime(), 'Checking t-address...');
   SNode.getPrimaryAddress((err, taddr) => {
     if (err) {
-      // console.log(errmsg);
       if (!initTimer) {
         initTimer = setInterval(() => {
           initialize();
-        }, 10000);
+        }, genCfg.initInterval);
       }
     } else {
       if (initTimer) clearInterval(initTimer);
@@ -163,10 +186,15 @@ const initialize = () => {
       ident.taddr = taddr;
       console.log(`Node t_address (not for stake)=${taddr}`);
       SNode.ident = ident;
-      console.log('Checking private z-addresses...');
+      console.log(logtime(), 'Checking private z-addresses...');
       SNode.getAddrWithBal((error, result) => {
         if (error) {
           console.error(error);
+          if (!initTimer) {
+            initTimer = setInterval(() => {
+              initialize();
+            }, genCfg.initInterval);
+          }
           return;
         }
 
@@ -281,12 +309,12 @@ const setSocketEvents = () => {
 
   socket.on('disconnect', () => {
     if (!returningHome) {
-      console.log(logtime(), `Disconnected from ${curServer}. Random retry.`);
+      console.log(logtime(), `Disconnected from ${curServer}. Retry at random intervals.`);
     }
     dTime = new Date();
     failoverTimer = setInterval(() => {
       switchServer();
-    }, 70000);
+    }, genCfg.failoverInterval);
   });
 
   socket.on('returnhome', () => {
@@ -299,25 +327,28 @@ const setSocketEvents = () => {
 
   socket.on('msg', (msg) => {
     console.log(logtime(), msg);
-    if (msg.indexOf('Stats received') !== -1) {
-      clearTimeout(SNode.statsAckTimer);
-    }
   });
 
   socket.on('action', (data) => {
+    let oldInterval;
     switch (data.action) {
       case 'set nid':
         saveConfig('nodeid', data.nid);
         break;
 
       case 'get stats':
-        SNode.getStats((err, stats) => {
+        SNode.collectStats((err, stats) => {
           if (err) {
             if (ident) {
               socket.emit('node', { type: 'down', ident });
             }
           } else {
-            socket.emit('node', { type: 'stats', stats, ident });
+            socket.emit('node', {
+              type: 'stats',
+              stats,
+              ident,
+              req: true,
+            });
           }
         });
         console.log(logtime(), 'Stats: send initial stats.');
@@ -363,16 +394,34 @@ const setSocketEvents = () => {
         console.log(logtime(), 'Updated server list');
         break;
 
-      case 'setStatInterval':
-        SNode.setStatInterval(data);
-        break;
-
       case 'setSocketOpts':
-        local.setItem('socketoptions', JSON.stringify(data));
+        local.setItem('socketoptions', JSON.stringify(data.cfg));
+        SNode.socketOptions = data.cfg;
+        console.log(logtime(), 'Updated socketOptions');
         break;
 
-      case 'setCheckInOpts':
-        checkIn = data;
+      case 'setStatsCheck':
+        local.setItem('statscfg', JSON.stringify(data.cfg));
+        SNode.statsCfg = data.cfg;
+        SNode.restartStatTimer(data.cfg);
+        console.log(logtime(), 'Updated statCheck config');
+        break;
+
+      case 'setGenCfg':
+        local.setItem('gensettings', JSON.stringify(data.cfg));
+        oldInterval = genCfg.conCheckInterval;
+        genCfg = data.cfg;
+        if (data.cfg.conCheckInterval !== oldInterval) conCheck();
+        SNode.genCfg = data.cfg;
+        console.log(logtime(), 'Updated general settings');
+        break;
+
+      case 'statsAck':
+        console.log(logtime(), `Stats received by ${data.server}`);
+        clearTimeout(SNode.statsAckTimer);
+        clearTimeout(SNode.statsRetryTimer);
+        SNode.statAckBackoff.reset();
+        if (!SNode.statsTimerRunning) SNode.initialize();
         break;
 
       default:
@@ -380,7 +429,9 @@ const setSocketEvents = () => {
     }
   });
   socket.on('error', (err) => {
-    console.log(logtime(), `Socket.io ERROR:  ${err.type}: ${err.message}`);
+    if (!err.message === 'websocket error') {
+      console.log(logtime(), `Socket.io ERROR:  ${err.message}`);
+    }
   });
 
   socket.on('reconnect', (num) => {
@@ -389,7 +440,7 @@ const setSocketEvents = () => {
   });
 
   socket.on('reconnect_error', (err) => {
-    console.log(logtime(), `Reconnect ${err.type}: ${err.message}`);
+    console.log(logtime(), `Reconnect ${err.message}`);
   });
 
   socket.on('pong', (latency) => {
@@ -402,37 +453,47 @@ const setSocketEvents = () => {
       latencies = [];
       pongCount = 0;
     }
+    if (!SNode.statsTimerRunning) {
+      const interval = SNode.statsInterval + SNode.statsAckTimeout;
+      if ((new Date()).getTime() - interval > SNode.statsLastSentTime) {
+        console.log(logtime(), 'Restart statCheck timer');
+        SNode.initialize();
+      }
+    }
   });
 };
 setSocketEvents();
 
 const conCheck = () => {
-  setInterval(() => {
+  if (conCheckTimer) clearInterval(conCheckTimer);
+  conCheckTimer = setInterval(() => {
+    console.log(logtime(), 'CONCHECK');
     if (!socket.connected) {
       console.log(logtime(), `No connection to server ${curServer}.`);
       if (!failoverTimer) {
         failoverTimer = setInterval(() => {
           switchServer();
-        }, 70000);
+        }, genCfg.failoverInterval);
       }
-    } else if (checkIn.enabled) {
+    } else if (genCfg.checkIn.enabled) {
       // application ping/pong
       checkInsMissed += 1;
-      socket.emit('checkIn', 1, (resp) => {
+      socket.emit('checkIn', (resp) => {
         if (resp.server !== curServer) console.log(logtime(), `Actually connected to ${resp.server}`);
         checkInsMissed = 0;
       });
       setTimeout(() => {
-        if (checkInsMissed >= 2) {
+        if (checkInsMissed >= genCfg.checkIn.max) {
           console.log(logtime(), 'Server does not appear to be responding. Resetting connection');
           resetSocket();
         }
-      }, checkIn.timeout);
+      }, genCfg.checkIn.timeout);
     }
-  }, 30000);
+  }, genCfg.conCheckInterval);
 };
 
 SNode.resetSocket = resetSocket;
+SNode.socketOptions = socketOptions;
 SNode.socket = socket;
 SNode.initialize();
 conCheck();
