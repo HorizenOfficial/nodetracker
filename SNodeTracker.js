@@ -55,9 +55,9 @@ if (savedCfg) {
   Object.assign(statCfg, scfg);
 } else {
   statCfg.statsAckBackoff = {
-    jitter: 0.800000,
-    max: 120000,
     min: 12000,
+    max: 120000,
+    jitter: 0.800000,
   };
   statCfg.statsAckTimeout = 6000;
   statCfg.statsInterval = 360000;
@@ -230,7 +230,7 @@ class SNode {
 
               const zaddr = result.addr;
               if (result.bal === 0) {
-                console.log(logtime(), 'Challenge private address balance is 0 at the moment. Cannot perform challenge');
+                console.log(logtime(), 'Challenge z-address balance is 0 at the moment. Cannot perform challenge');
               }
               console.log(`Using ${zaddr} for challenge. bal=${result.bal}`);
               if (zaddr && result.bal > 0) {
@@ -270,7 +270,6 @@ class SNode {
         resp.ident = self.ident;
         self.socket.emit('chalresp', resp);
         console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
-        // console.error(logtime(), error);
         if (!self.zenDownTimer) {
           self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
         }
@@ -280,7 +279,7 @@ class SNode {
   async checkOp(opid, chal) {
     const self = this;
     if (!self.chalRunning) {
-      console.log(logtime(), 'Clearing timer');
+      console.log(logtime(), 'Clearing challenge timer');
       clearInterval(self.opTimer);
       return;
     }
@@ -374,7 +373,6 @@ class SNode {
   }
 
   getConfig(req, trkver, hw, nodejs, platform) {
-    //   node version,  trkver, and hw
     const self = this;
     self.rpc.getinfo()
       .then((data) => {
@@ -519,7 +517,9 @@ class SNode {
         for (let i = 0; i < data.length; i += 1) {
           const p = data[i];
           if (p.inbound === false) {
-            const ip = p.addr.indexOf(']') !== -1 ? p.addr.substr(1, p.addr.indexOf(']') - 1) : p.addr.substr(0, p.addr.indexOf(':'));
+            const ip = p.addr.indexOf(']') !== -1
+              ? p.addr.substr(1, p.addr.indexOf(']') - 1)
+              : p.addr.substr(0, p.addr.indexOf(':'));
             const peer = { ip, tls: p.tls_verified };
             peers.push(peer);
           }
