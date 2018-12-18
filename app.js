@@ -24,6 +24,7 @@ const config = configuration[nodetype];
 // get general app settings
 const savedSettings = local.getItem('gensettings');
 let genCfg = {};
+const defaultInterval = 30000;
 
 // get saved or set defaults. can be updated from server
 if (savedSettings) {
@@ -176,7 +177,7 @@ const initialize = () => {
     if (err) {
       setTimeout(() => {
         initialize();
-      }, genCfg.initInterval);
+      }, genCfg.initInterval || defaultInterval);
     } else {
       ident.taddr = taddr;
       console.log(`Node t_address (not for stake)=${taddr}`);
@@ -187,7 +188,7 @@ const initialize = () => {
           console.error(logtime(), error || result);
           setTimeout(() => {
             initialize();
-          }, genCfg.initInterval);
+          }, genCfg.initInterval || defaultInterval);
           return;
         }
 
@@ -307,7 +308,7 @@ const setSocketEvents = () => {
     dTime = new Date();
     failoverTimer = setInterval(() => {
       switchServer();
-    }, genCfg.failoverInterval);
+    }, genCfg.failoverInterval || defaultInterval);
   });
 
   socket.on('returnhome', () => {
@@ -466,7 +467,7 @@ const conCheck = () => {
       if (!failoverTimer) {
         failoverTimer = setInterval(() => {
           switchServer();
-        }, genCfg.failoverInterval);
+        }, genCfg.failoverInterval || defaultInterval);
       }
     } else if (genCfg.checkIn.enabled) {
       // application ping/pong
@@ -482,7 +483,7 @@ const conCheck = () => {
         }
       }, genCfg.checkIn.timeout);
     }
-  }, genCfg.conCheckInterval);
+  }, genCfg.conCheckInterval || defaultInterval);
 };
 
 SNode.resetSocket = resetSocket;
