@@ -32,13 +32,15 @@ Each nodetracker must have
     - Remove tls peers on stats check
     - Add tls peers on server request
     - Add stat acknowledgment random timeouts before reset socket
-    - Add Save application settings to local update from tracking server
+    - Add save application settings to local update from tracking server
     - Add multiple zaddr check to use highest balance
     - Add latency check based on socket level ping/pong
     - Add periodic ‘checkIn’ (ping/pong) at application level
     - Add error check and retry timer on failure to get zaddress balance
     - Save application settings to local and allow updates from server
     - Add ipv6 lookup family to ipv6 dns workaround (credit to emminer - thanks!)
+    - Challenge: low balance no longer creates Exception. Fails on no funds.
+    - Current server saved to config/local for external scripts 
 
   #### 0.3.1
     - added zen.conf requirements for externalip and port.
