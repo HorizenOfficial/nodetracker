@@ -57,7 +57,7 @@ if (savedCfg) {
   statCfg.statsAckBackoff = {
     jitter: 0.800000,
     max: 120000,
-    min: 1200,
+    min: 12000,
   };
   statCfg.statsAckTimeout = 6000;
   statCfg.statsInterval = 360000;
@@ -70,12 +70,9 @@ class SNode {
     this.rpc = rpc;
     this.zencfg = cfgzen;
     this.statsCfg = statCfg;
-    // this.statsInterval = local.getItem('statsInterval') || 1000 * 60 * 4;
     this.statsTimer = null;
     this.statsTimerRunning = false;
-   // this.statsAckTimeout = local.getItem('statsAckTimeout') || 1000 * 6;
     this.statsAckTimer = null;
-   // this.statsRetryMax = 3;
     this.statsRetryCount = 0;
     this.statsRetryTimer = null;
     this.statAckBackoff = new Backoff(this.statsCfg.statsAckBackoff);
@@ -122,6 +119,14 @@ class SNode {
     self.initialize();
   }
 
+  ackStats() {
+    const self = this;
+    clearTimeout(self.statsAckTimer);
+    clearTimeout(self.statsRetryTimer);
+    self.statAckBackoff.reset();
+    if (!self.statsTimerRunning) self.initialize();
+  }
+
   checkZen() {
     const self = this;
     self.getPrimaryAddress((err) => {
@@ -158,7 +163,8 @@ class SNode {
       })
       .then((addrs) => {
         if (addrs.length === 0) {
-          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
+          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\''
+            + ' and send at least 0.02 ZEN for challenges split into 2 or more transactions');
           return cb(null);
         }
         const bals = [];
@@ -171,7 +177,7 @@ class SNode {
             if (bals.length > 0) {
               for (let i = 0; i < bals.length; i += 1) {
                 const zaddr = bals[i];
-                if (zaddr.bal && zaddr.bal > self.minChalBal) {
+                if (zaddr.bal) {
                   if (!obj || (obj && zaddr.bal > obj.bal)) {
                     obj = {
                       addr: zaddr.addr,
@@ -439,7 +445,6 @@ class SNode {
       console.log(logtime(), `Stat check: no response from server count: ${self.statsRetryCount}. Reconnecting.`);
       self.statsRetryCount = 0;
       self.resetSocket('no stat check response from server');
-      self.statAckBackoff.reset();
     } else {
       clearTimeout(self.statsTimer);
       self.statsTimerRunning = false;
