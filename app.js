@@ -96,7 +96,6 @@ if (process.env.DEV) {
 
 let failoverTimer = null;
 let conCheckTimer = null;
-let initTimer = null;
 let returningHome = false;
 let checkInsMissed = 0;
 
@@ -175,32 +174,26 @@ const initialize = () => {
   console.log(logtime(), 'Checking t-address...');
   SNode.getPrimaryAddress((err, taddr) => {
     if (err) {
-      if (!initTimer) {
-        initTimer = setInterval(() => {
-          initialize();
-        }, genCfg.initInterval);
-      }
+      setTimeout(() => {
+        initialize();
+      }, genCfg.initInterval);
     } else {
-      if (initTimer) clearInterval(initTimer);
-
       ident.taddr = taddr;
       console.log(`Node t_address (not for stake)=${taddr}`);
       SNode.ident = ident;
       console.log(logtime(), 'Checking private z-addresses...');
       SNode.getAddrWithBal((error, result) => {
-        if (error) {
-          console.error(error);
-          if (!initTimer) {
-            initTimer = setInterval(() => {
-              initialize();
-            }, genCfg.initInterval);
-          }
+        if (error || result === 'Unable to get a z-addr balance') {
+          console.error(logtime(), error || result);
+          setTimeout(() => {
+            initialize();
+          }, genCfg.initInterval);
           return;
         }
 
         if (result.bal === 0 && result.valid) {
           console.log('Challenge private address balance is 0');
-          console.log('Please add a total of 0.04 zen to the private address by sending 4 or more transactions.');
+          console.log('Please send at least 0.02 zen to the private address split into 2 or more transactions.');
 
           if (!nodeid) {
             console.log(result.addr);
@@ -209,9 +202,9 @@ const initialize = () => {
           }
         } else {
           console.log(`Balance for challenge transactions is ${result.bal}`);
-          if (result.bal < 0.01 && result.valid) {
+          if (result.bal < 0.002 && result.valid) {
             console.log('Challenge private address balance getting low');
-            console.log('Please send a few small amounts (0.02 each) to the private address below');
+            console.log('Please send a few small amounts (0.01 each) to the private address below');
           }
         }
 
@@ -327,6 +320,10 @@ const setSocketEvents = () => {
 
   socket.on('msg', (msg) => {
     console.log(logtime(), msg);
+    // for backward compatibility until servers support 0.4.0
+    if (msg.indexOf('Stats received') !== -1) {
+      SNode.ackStats();
+    }
   });
 
   socket.on('action', (data) => {
@@ -418,10 +415,7 @@ const setSocketEvents = () => {
 
       case 'statsAck':
         console.log(logtime(), `Stats received by ${data.server}`);
-        clearTimeout(SNode.statsAckTimer);
-        clearTimeout(SNode.statsRetryTimer);
-        SNode.statAckBackoff.reset();
-        if (!SNode.statsTimerRunning) SNode.initialize();
+        SNode.ackStats();
         break;
 
       default:
@@ -467,7 +461,6 @@ setSocketEvents();
 const conCheck = () => {
   if (conCheckTimer) clearInterval(conCheckTimer);
   conCheckTimer = setInterval(() => {
-    console.log(logtime(), 'CONCHECK');
     if (!socket.connected) {
       console.log(logtime(), `No connection to server ${curServer}.`);
       if (!failoverTimer) {
