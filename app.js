@@ -243,6 +243,7 @@ const switchServer = (server) => {
   socket = io(protocol + curServer + domain, socketOptions);
   SNode.socket = socket;
   setSocketEvents();
+  local.setItem('curserver', curServer);
 };
 
 const changeHome = (server) => {
@@ -261,6 +262,7 @@ const changeHome = (server) => {
   SNode.socket = socket;
   setSocketEvents();
   returningHome = false;
+  local.setItem('curserver', curServer);
 };
 
 const returnHome = () => {
@@ -274,7 +276,8 @@ const returnHome = () => {
   SNode.socket = socket;
   setSocketEvents();
   returningHome = false;
-}
+  local.setItem('curserver', curServer);
+};
 
 const resetSocket = (msg) => {
   console.log(logtime(), `Reset connection  ${msg || ''}`);
