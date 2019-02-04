@@ -459,6 +459,11 @@ const setSocketEvents = () => {
       }
     }
   });
+
+  socket.on('checkedIn', (srv) => {
+    if (srv !== curServer) console.log(logtime(), `Actually connected to ${srv}`);
+    checkInsMissed = 0;
+  });
 };
 setSocketEvents();
 
@@ -475,10 +480,7 @@ const conCheck = () => {
     } else if (genCfg.checkIn.enabled) {
       // application ping/pong
       checkInsMissed += 1;
-      socket.emit('checkIn', (resp) => {
-        if (resp.server !== curServer) console.log(logtime(), `Actually connected to ${resp.server}`);
-        checkInsMissed = 0;
-      });
+      socket.emit('checkIn');
       setTimeout(() => {
         if (checkInsMissed >= genCfg.checkIn.max) {
           console.log(logtime(), 'Server does not appear to be responding. Resetting connection');
