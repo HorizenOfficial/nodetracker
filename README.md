@@ -65,10 +65,9 @@ If you are doing a new install the general New Installation instructions further
    #### Update nodetracker
    NOTE:  for backward compatibility the folder can be named 'secnodetracker' even for Super Nodes. However if you would like to change the folder please see the upgrade section in the installation guide
 
-  1. Change to the nodetracker folder and update the tracker application. 
-    This may be '~/zencash/secnodetracker' if the install guides were followed or '~/nodetracker' for newer installations
+  1. Change to the nodetracker folder and update the tracker application. This may be 'zencash/secnodetracker' if the old install guides were followed.
 
-      * cd ~/zencash/secnodetracker
+      * cd ~/nodetracker
       * git fetch origin
       * git checkout master
       * git pull
@@ -78,7 +77,7 @@ If you are doing a new install the general New Installation instructions further
     Then run the last 3 above commands again.
 
 
-  2. Add node.js environment variable when updating the npm modules. This will stop the next step from installing development libraries. Install new nodejs module and remove old ones.
+  2. Install/update new nodejs modules and remove old ones. Use a node.js environment variable when updating the npm modules. This will stop npm from installing development libraries. 
 
       *  NODE_ENV=production npm install 
 
@@ -86,13 +85,13 @@ If you are doing a new install the general New Installation instructions further
 
       * Ctrl-c
       * node app
-      * or restart using your management application such as PM2
+      * or restart using your management application such as PM2 or systemd
 
   
 
 
 ## NEW INSTALLATION
-If you have followed [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for creating a Secure or Super Node, you should be ready to install this on your node. 
+It is suggested you follow the much more detailed [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for creating a Secure or Super Node. The instructions below are general instructions for the nodetracker.
 
 You will need about 0.04 zen in the node's wallet in a private address. Send multiple small amounts (0.01 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. Alternately create an additional private z-address and split the amount between them.
 
@@ -138,8 +137,8 @@ During setup press Enter to accept the default and enter new information when pr
 There is a prompt for an optional category. This allows a node operator with multiple nodes to group them together.
 
   * node setup
-  The setup process will stop if zen.conf does not have certain entries.
-  Update the zen.conf file and rerun setup until it completes successfully
+
+NOTE:  The setup process will stop if zen.conf does not have certain entries. Update the zen.conf file and rerun setup until it completes successfully.
 
 
 ### Start the tracking app
@@ -150,7 +149,7 @@ Once setup is complete, start the tracker manually or with your system configura
   * node app
  
 Follow any instructions shown on the console.  Rerun setup if needed: it will remember your previous values. 
-Use Ctrl-c to break out of the app. 
+Use Ctrl-c to break out of the app if running directly in nodejs.
 
 **NOTE:**  There should only be 1 instance of the tracking app running at a time.
  
