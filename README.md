@@ -1,7 +1,7 @@
 # nodetracker
-#### ZenCash Secure And Super Node tracking app
+#### Horizen Secure And Super Node tracking app
 
-This application is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the zencash network.
+This application is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the horizen network.
 
 Each nodetracker must have
   - a unique IP address (v4 or v6) also used by zend
