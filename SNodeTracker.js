@@ -2,6 +2,8 @@
 const { LocalStorage } = require('node-localstorage');
 const fs = require('fs');
 const StdRPC = require('stdrpc');
+const Backoff = require('backo2');
+
 const Zen = require('./zencfg');
 
 const zencfg = Zen.getZenConfig();
@@ -45,16 +47,39 @@ const rpcError = (err, txt, cb) => {
   return cb(err.message);
 };
 
+// config
+const savedCfg = local.getItem('statscfg');
+const statCfg = {};
+if (savedCfg) {
+  const scfg = JSON.parse(savedCfg);
+  Object.assign(statCfg, scfg);
+} else {
+  statCfg.statsAckBackoff = {
+    min: 12000,
+    max: 120000,
+    jitter: 0.800000,
+  };
+  statCfg.statsAckTimeout = 6000;
+  statCfg.statsInterval = 360000;
+  statCfg.statsRetryMax = 3;
+}
+
 
 class SNode {
   constructor(rpc, cfgzen) {
     this.rpc = rpc;
     this.zencfg = cfgzen;
-    this.statsInterval = 1000 * 60 * 6;
+    this.statsCfg = statCfg;
     this.statsTimer = null;
+    this.statsTimerRunning = false;
+    this.statsAckTimer = null;
+    this.statsRetryCount = 0;
+    this.statsRetryTimer = null;
+    this.statAckBackoff = new Backoff(this.statsCfg.statsAckBackoff);
     this.statsLoop = () => {
       this.collectStats();
     };
+    this.statsLastSentTime = null;
     this.configcount = 0;
     this.chalStart = null;
     this.chalRunning = false;
@@ -68,7 +93,7 @@ class SNode {
     this.memBefore = {};
     this.memNearEnd = {};
     this.waiting = false;
-    this.zenDownInterval = 1000 * 61;
+    this.zenDownInterval = 1000 * 60;
     this.zenDownTimer = null;
     this.zenDownLoop = () => {
       this.checkZen();
@@ -82,7 +107,24 @@ class SNode {
   }
 
   initialize() {
-    this.statsTimer = setInterval(this.statsLoop, this.statsInterval);
+    this.statsTimer = setInterval(this.statsLoop, this.statsCfg.statsInterval);
+    this.statsTimerRunning = true;
+  }
+
+  restartStatTimer(statconfig) {
+    const self = this;
+    self.statsCfg = statconfig;
+    console.log(logtime(), `Stat Interval changed to ${statconfig.statsInterval}ms`);
+    clearTimeout(self.statsTimer);
+    self.initialize();
+  }
+
+  ackStats() {
+    const self = this;
+    clearTimeout(self.statsAckTimer);
+    clearTimeout(self.statsRetryTimer);
+    self.statAckBackoff.reset();
+    if (!self.statsTimerRunning) self.initialize();
   }
 
   checkZen() {
@@ -121,7 +163,8 @@ class SNode {
       })
       .then((addrs) => {
         if (addrs.length === 0) {
-          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\' and send at least 0.04 ZEN for challenges split into 4 or more transactions');
+          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\''
+            + ' and send at least 0.02 ZEN for challenges split into 2 or more transactions');
           return cb(null);
         }
         const bals = [];
@@ -134,19 +177,20 @@ class SNode {
             if (bals.length > 0) {
               for (let i = 0; i < bals.length; i += 1) {
                 const zaddr = bals[i];
-                if (zaddr.bal && zaddr.bal > self.minChalBal) {
-                  obj = {
-                    addr: zaddr.addr,
-                    bal: zaddr.bal,
-                    valid: results.valid,
-                    lastChalBlock: lastChalBlockNum,
-                  };
-                  break;
+                if (zaddr.bal) {
+                  if (!obj || (obj && zaddr.bal > obj.bal)) {
+                    obj = {
+                      addr: zaddr.addr,
+                      bal: zaddr.bal,
+                      valid: results.valid,
+                      lastChalBlock: lastChalBlockNum,
+                    };
+                  }
                 }
               }
             }
             if (obj) return cb(null, obj);
-            return cb('Unable to get z-addr balance');
+            return cb('Unable to get a z-addr balance');
           });
       })
       .catch(err => rpcError(err, 'get addrwithbalance', cb));
@@ -186,7 +230,7 @@ class SNode {
 
               const zaddr = result.addr;
               if (result.bal === 0) {
-                console.log(logtime(), 'Challenge private address balance is 0 at the moment. Cannot perform challenge');
+                console.log(logtime(), 'Challenge z-address balance is 0 at the moment. Cannot perform challenge');
               }
               console.log(`Using ${zaddr} for challenge. bal=${result.bal}`);
               if (zaddr && result.bal > 0) {
@@ -226,7 +270,6 @@ class SNode {
         resp.ident = self.ident;
         self.socket.emit('chalresp', resp);
         console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
-        // console.error(logtime(), error);
         if (!self.zenDownTimer) {
           self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
         }
@@ -236,7 +279,7 @@ class SNode {
   async checkOp(opid, chal) {
     const self = this;
     if (!self.chalRunning) {
-      console.log(logtime(), 'Clearing timer');
+      console.log(logtime(), 'Clearing challenge timer');
       clearInterval(self.opTimer);
       return;
     }
@@ -330,7 +373,6 @@ class SNode {
   }
 
   getConfig(req, trkver, hw, nodejs, platform) {
-    //   node version,  trkver, and hw
     const self = this;
     self.rpc.getinfo()
       .then((data) => {
@@ -349,6 +391,7 @@ class SNode {
         const config = {
           node, trkver, hw, mem: self.mem, nodejs, platform,
         };
+        config.statsInterval = self.statsCfg.statsInterval;
         self.socket.emit('node', { type: 'config', ident: self.ident, config });
       })
       .catch(err => rpcError(err, 'get config', () => { }));
@@ -371,19 +414,44 @@ class SNode {
         if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
       } else {
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-        self.getTLSPeers((error, tlsPeers) => {
-          if (error) console.log(logtime(), `Unable to get peers from zen. ${error}`);
-          const stats2 = Object.assign({}, stats);
-          let display = '';
-          Object.entries(stats2).forEach((s) => {
-            if (s !== 'tlsPeers') display += `${s[0]}:${s[1]}  `;
-          });
-          stats2.tlsPeers = tlsPeers;
-          self.socket.emit('node', { type: 'stats', stats: stats2, ident: self.ident });
-          console.log(logtime(), `Stat check: connected to:${self.ident.con.cur} ${display}`);
+        const stats2 = Object.assign({}, stats);
+        let display = '';
+        Object.entries(stats2).forEach((s) => {
+          display += `${s[0]}:${s[1]}  `;
         });
+        const reply = {
+          type: 'stats',
+          stats: stats2,
+          ident: self.ident,
+          sots: self.socketOptions.ts,
+          scts: self.statsCfg.ts,
+          gts: self.genCfg.ts,
+        };
+        self.socket.emit('node', reply);
+        self.statsLastSentTime = (new Date()).getTime();
+        self.statsAckTimer = setTimeout(() => { self.missedStatsAck(); }, self.statsCfg.statsAckTimeout);
+        console.log(logtime(), `Stat check: server:${self.ident.con.cur} ${display}`);
       }
     });
+  }
+
+  missedStatsAck() {
+    const self = this;
+    self.statsRetryCount += 1;
+    if (self.statAckBackoff.attempts === 0) self.statAckBackoff.attempts = 1;
+    if (self.statsRetryCount > self.statsCfg.statsRetryMax) {
+      console.log(logtime(), `Stat check: no response from server count: ${self.statsRetryCount}. Reconnecting.`);
+      self.statsRetryCount = 0;
+      self.resetSocket('no stat check response from server');
+    } else {
+      clearTimeout(self.statsTimer);
+      self.statsTimerRunning = false;
+      const timeout = self.statAckBackoff.duration();
+      self.statsRetryTimer = setTimeout(() => { self.collectStats(); }, timeout);
+      const msg = self.statsRetryCount > self.statsCfg.statsRetryMax ? '' : `in ${(timeout / 1000).toFixed(0)}s`;
+      console.log(logtime(), `Stat check: no response from server count: ${self.statsRetryCount}.`
+        + ` Retry ${msg}`);
+    }
   }
 
   getStats(cb) {
@@ -449,7 +517,9 @@ class SNode {
         for (let i = 0; i < data.length; i += 1) {
           const p = data[i];
           if (p.inbound === false) {
-            const ip = p.addr.indexOf(']') !== -1 ? p.addr.substr(1, p.addr.indexOf(']') - 1) : p.addr.substr(0, p.addr.indexOf(':'));
+            const ip = p.addr.indexOf(']') !== -1
+              ? p.addr.substr(1, p.addr.indexOf(']') - 1)
+              : p.addr.substr(0, p.addr.indexOf(':'));
             const peer = { ip, tls: p.tls_verified };
             peers.push(peer);
           }

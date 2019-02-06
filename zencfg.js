@@ -54,7 +54,7 @@ exports.getZenConfig = () => {
             found4 = true;
           }
           if (whichip === '6' && !found6) {
-            zencfg.zip6 = data[1];
+            zencfg.zip6 = data[1].toLowerCase();
             found6 = true;
           }
         }
