@@ -1,6 +1,6 @@
 {
   "name": "zennodetracker",
-  "version": "0.4.0-rc1",
+  "version": "0.4.0",
   "description": "horizen secure and super node tracking application",
   "repository": {
     "type": "git",

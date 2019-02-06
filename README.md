@@ -9,12 +9,12 @@ Each nodetracker must have
 
   Secure Node
     - maintain a stake address with at least 42 ZEN
-    - be able to perform challenges in 300 seconds or under
+    - be able to perform challenges in 300 seconds or under (or as posted)
     - uptime of 92% or greater
      
   Super Node
     - a stake address with at least 500 ZEN
-    - be able to perform challenges in 150 seconds or under
+    - be able to perform challenges in 150 seconds or under (or as posted)
     - uptime of 96% or greater
     - zend configured with both IPv4 and IPv6 addresses 
 
@@ -65,8 +65,8 @@ If you are doing a new install the general New Installation instructions further
    #### Update nodetracker
    NOTE:  for backward compatibility the folder can be named 'secnodetracker' even for Super Nodes. However if you would like to change the folder please see the upgrade section in the installation guide
 
-  1. Change to the secnodetracker folder and update the tracker application. 
-    This may be '~/zencash/secnodetracker' if the install guides were followed.
+  1. Change to the nodetracker folder and update the tracker application. 
+    This may be '~/zencash/secnodetracker' if the install guides were followed or '~/nodetracker' for newer installations
 
       * cd ~/zencash/secnodetracker
       * git fetch origin
