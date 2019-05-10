@@ -19,6 +19,8 @@ Each nodetracker must have
     - zend configured with both IPv4 and IPv6 addresses 
 
   See the [Secure Node About page](https://securenodes.zensystem.io/) or [Super Node About page](https://supernodes.zensystem.io/) on the tracking servers for full details about compliance.  
+  
+  See the [Securenode and Supernode Wiki](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872141/Secure+and+Super+Nodes) for an overview.
 
   See the [Installation Guide](https://zencash.atlassian.net/wiki/spaces/ZEN/pages/7537322/Installation) for detailed configuration steps.
 
