@@ -117,10 +117,10 @@ Log into your node computer or vps.  The following commands install Node.js (a j
 Note:  if you would like to name the folder during the clone process, append the folder name to the clone command. The default is 'nodetracker'.
 
   * cd ~/
-  * git clone https://github.com/ZencashOfficial/nodetracker.git 
+  * git clone https://github.com/HorizenOfficial/nodetracker.git 
 
   or to specify a folder name 
-    git clone https://github.com/ZencashOfficial/nodetracker.git nodetracker
+    git clone https://github.com/HorizenOfficial/nodetracker.git nodetracker
 
 
 ### Install the nodejs modules
