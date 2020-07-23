@@ -71,7 +71,7 @@ exports.getZenConfig = () => {
   }
 
   // build url
-  const url = `http://${zencfg.rpchost}:${zencfg.rpcport}`;
+  const url = `http://${zencfg.rpcconnect}:${zencfg.rpcport}`;
   zencfg.url = url;
 
   if (foundMax) {
