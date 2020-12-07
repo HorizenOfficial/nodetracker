@@ -176,7 +176,7 @@ There are two optional environment variables that may be used to locate zen.conf
   * ZEN_HOME - if this is found it should be a base path. '/.zen/zen.conf' is appended to it.
 
   - If the above two are not found the operating system is used for the home path.
-  - The search is then peformed in the following order:
+  - The search is then performed in the following order:
       - oshome + "/.zen/zen.conf";
       - oshome + "/zencash/.zen/zen.conf";
       - oshome + "/AppData/Roaming/Zen/zen.conf";
