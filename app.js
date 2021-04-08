@@ -147,6 +147,7 @@ ident.zend = {
   port: SNode.zencfg.port,
 };
 
+console.log(`Configuration: ${JSON.stringify(ident.zend)}`);
 // optional category
 let cat = config.category;
 if (cat) {
@@ -175,6 +176,7 @@ const initialize = () => {
   console.log(logtime(), 'Checking t-address...');
   SNode.getPrimaryAddress((err, taddr) => {
     if (err) {
+      console.log(`>>error ${err}`)
       setTimeout(() => {
         initialize();
       }, genCfg.initInterval || defaultInterval);
