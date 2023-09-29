@@ -1,4 +1,3 @@
-
 const { LocalStorage } = require('node-localstorage');
 const fs = require('fs');
 const StdRPC = require('stdrpc');
@@ -62,7 +61,6 @@ if (savedCfg) {
   statCfg.statsInterval = 360000;
   statCfg.statsRetryMax = 3;
 }
-
 
 class SNode {
   constructor(rpc, cfgzen) {
@@ -133,7 +131,7 @@ class SNode {
         self.waiting = false;
         return cb(null, data[0]);
       })
-      .catch(err => rpcError(err, 'get t-address', cb));
+      .catch((err) => rpcError(err, 'get t-address', cb));
   }
 
   getConfig(req, trkver, hw, nodejs, platform) {
@@ -158,7 +156,7 @@ class SNode {
         config.statsInterval = self.statsCfg.statsInterval;
         self.socket.emit('node', { type: 'config', ident: self.ident, config });
       })
-      .catch(err => rpcError(err, 'get config', () => { }));
+      .catch((err) => rpcError(err, 'get config', () => { }));
   }
 
   collectStats() {
@@ -178,7 +176,7 @@ class SNode {
         if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
       } else {
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-        const stats2 = Object.assign({}, stats);
+        const stats2 = { ...stats };
         let display = '';
         Object.entries(stats2).forEach((s) => {
           display += `${s[0]}:${s[1]}  `;
@@ -242,7 +240,7 @@ class SNode {
             return cb('ident not set');
           });
       })
-      .catch(err => rpcError(err, 'get stats', cb));
+      .catch((err) => rpcError(err, 'get stats', cb));
   }
 
   getNetworks(req, cb) {
@@ -295,7 +293,7 @@ class SNode {
         if (setLast) local.setItem('lastChalBlock', data.blocks);
         return data.blocks;
       })
-      .catch(err => rpcError(err, 'get blockheight', () => { }));
+      .catch((err) => rpcError(err, 'get blockheight', () => { }));
   }
 
   getProcMeminfo(display, save) {
@@ -339,6 +337,5 @@ class SNode {
     return data;
   }
 }
-
 
 module.exports = SNode;

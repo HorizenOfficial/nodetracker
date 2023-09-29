@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 const fs = require('fs');
 const { LocalStorage } = require('node-localstorage');
 const jsonfile = require('jsonfile');
@@ -5,8 +6,8 @@ const io = require('socket.io-client');
 const os = require('os');
 const SNode = require('./SNodeTracker').auto();
 const pkg = require('./package.json');
-const init = require('./init');
-const configuration = require('./config/config');
+const init = require('./init.json');
+const configuration = require('./config/config.json');
 
 const file = './config/config.json';
 
