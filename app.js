@@ -89,7 +89,7 @@ console.log(logtime(), 'STARTING NODETRACKER');
 let curIdx = servers.indexOf(home);
 let curServer = home;
 let protocol = `${init.protocol}://`;
-let domain = `.${init.domain}`;
+let domain = `.${genCfg.domain || init.domain}`;
 if (process.env.DEV) {
   protocol = process.env.DEV_PROTOCOL;
   domain = process.env.DEV_DOMAIN;
@@ -169,6 +169,20 @@ if (savedOpts) {
 }
 let socket = io(protocol + curServer + domain, socketOptions);
 
+const authenticate = () => {
+  ident.email = config.email;
+  SNode.getNetworks(null, (err, nets) => {
+    if (!err) {
+      ident.nets = nets;
+      socket.emit('initnode', ident, () => {
+        // only pass email and nets on init.
+        delete ident.email;
+        delete ident.nets;
+      });
+    }
+  });
+};
+
 const initialize = () => {
   // check connectivity by getting the t_address.
   // pass identity to server on success
@@ -182,48 +196,8 @@ const initialize = () => {
       ident.taddr = taddr;
       console.log(`Node t_address (not for stake)=${taddr}`);
       SNode.ident = ident;
-      console.log(logtime(), 'Checking private z-addresses...');
-      SNode.getAddrWithBal((error, result) => {
-        if (error || result === 'Unable to get a z-addr balance') {
-          console.error(logtime(), error || result);
-          setTimeout(() => {
-            initialize();
-          }, genCfg.initInterval || defaultInterval);
-          return;
-        }
-
-        if (result.bal === 0 && result.valid) {
-          console.log('Challenge private address balance is 0');
-          console.log('Please send at least 0.02 zen to the private address split into 2 or more transactions.');
-
-          if (!nodeid) {
-            console.log(result.addr);
-            console.log('Unable to register node. Exiting.');
-            process.exit();
-          }
-        } else {
-          console.log(`Balance for challenge transactions is ${result.bal}`);
-          if (result.bal < 0.002 && result.valid) {
-            console.log('Challenge private address balance getting low');
-            console.log('Please send a few small amounts (0.01 each) to the private address below');
-          }
-        }
-
-        console.log('Using the following address for challenges');
-        console.log(result.addr);
-
-        ident.email = config.email;
-        SNode.getNetworks(null, (err2, nets) => {
-          if (!err2) {
-            ident.nets = nets;
-            socket.emit('initnode', ident, () => {
-              // only pass email and nets on init.
-              delete ident.email;
-              delete ident.nets;
-            });
-          }
-        });
-      });
+      console.log(logtime(), 'Authenticating...');
+      authenticate();
     }
   });
 };
