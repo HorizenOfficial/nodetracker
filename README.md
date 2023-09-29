@@ -1,28 +1,30 @@
 # nodetracker
 #### Horizen Secure And Super Node tracking app
 
-This application is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance challenges. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the horizen network.
+This application is installed on a Secure Node or a Super Node to allow it to communicate with its corresponding zensystem.io tracking server. It provides data to the server about the node and performs compliance checks. Nodes that are in compliance receive a percentage of the block rewards. The tracking networks runs completely separate from the horizen network.
 
-Each nodetracker must have
-  - a unique IP address (v4 or v6) also used by zend
-  - about 0.01 ZEN for challenges in one or more z-address on the node
+Each nodetracker must have    
+  - A unique IP address (v4 or v6) also used by zend
 
-  Secure Node
-    - maintain a stake address with at least 42 ZEN
-    - be able to perform challenges in 300 seconds or under (or as posted)
-    - uptime of 92% or greater
+  - Secure Nodes
+    * a stake address with at least 42 ZEN
+    * uptime of 92% or greater
      
-  Super Node
-    - a stake address with at least 500 ZEN
-    - be able to perform challenges in 150 seconds or under (or as posted)
-    - uptime of 96% or greater
-    - zend configured with both IPv4 and IPv6 addresses 
+  - Super Nodes
+    * a stake address with at least 500 ZEN
+    * uptime of 96% or greater
+    * zend configured with both IPv4 and IPv6 addresses 
 
-  See the [Secure Node About page](https://securenodes.zensystem.io/) or [Super Node About page](https://supernodes.zensystem.io/) on the tracking servers for full details about compliance.  
+See the [Secure Node About page](https://securenodes.zensystem.io/) or [Super Node About page](https://supernodes.zensystem.io/) on the tracking servers for full details about compliance.  
 
-  See the [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for detailed configuration steps.
+See the [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for detailed configuration steps.
 
 ## Changes
+
+  #### 0.5.0
+    - Remove challenges
+    - Remove check for private addresses
+    - Update dependencies
 
   #### 0.4.0
     - Randomize delay before reconnect
@@ -57,7 +59,7 @@ If you are doing a new install the general New Installation instructions further
    1. Run the following command
       * node -v
     
-   - Suggested version is 10.x.x since it will have long term support. Node.js versions greater than this have not been tested but may work.
+   - Suggested version is the most recent LTS (long term support).
 
     To update or change run:
       * sudo n lts
@@ -93,9 +95,7 @@ If you are doing a new install the general New Installation instructions further
 ## NEW INSTALLATION
 It is suggested you follow the much more detailed [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/ZEN/pages/136872139/Installation) for creating a Secure or Super Node. The instructions below are general instructions for the nodetracker.
 
-You will need about 0.04 zen in the node's wallet in a private address. Send multiple small amounts (0.01 each) to work around an issue with 0 balances due to waiting for change to return after a challenge. Alternately create an additional private z-address and split the amount between them.
-
-The private z-address needs to be created manually if not present (zen-cli z_getnewaddress).  If already present the balance is checked when the app starts and the address is displayed on the tracker console or in the logs.
+As of version 0.5.0 private addresses no longer need to be created since challenges are no longer issued.
 
 You will also need a transparent address in a wallet (not on the node) with at least 42 zen for a secure node or 500 zen for a super node. This balance will be checked during node registration on the server. This is not the address shown on the console (the t-address on the console is used as part of the node's identity). The stake address is also the payout address.
 
@@ -106,7 +106,7 @@ These instructions should be run as the user created in the guide (not root).
 ### Install npm and Node.js
 Log into your node computer or vps.  The following commands install Node.js (a javascript virtual machine) and NPM (Node Package Manager)
 
-  - Suggested version is 10.13.x (or higher 10.x) since it will have long term support. Node.js versions greater than this have not been tested but should work.
+  - Suggested version is is the latest LTS version since it will have long term support.
 
   * sudo apt-get install npm
   * sudo npm install -g n
@@ -138,20 +138,20 @@ There is a prompt for an optional category. This allows a node operator with mul
 
   * node setup
 
-NOTE:  The setup process will stop if zen.conf does not have certain entries. Update the zen.conf file and rerun setup until it completes successfully.
+NOTE:  The setup process will stop if zen.conf does not have certain entries or detects entries that need to be removed. Update the zen.conf file and rerun setup until it completes successfully.
 
 
 ### Start the tracking app
 Before starting the nodetracker make sure the blockchain is fully synced and the stake address has the correct confirmed amount.
 
-Once setup is complete, start the tracker manually or with your system configuration or nodejs process monitor such as PM2 or if you have it configured to use systemd.
+Once setup is complete, start the tracker manually or with your system configuration or if you have it configured to use systemd.
 
   * node app
  
 Follow any instructions shown on the console.  Rerun setup if needed: it will remember your previous values. 
 Use Ctrl-c to break out of the app if running directly in nodejs.
 
-**NOTE:**  There should only be 1 instance of the tracking app running at a time.
+**NOTE:**  There should only be 1 instance of the tracking app running at a time. Multiple instances may cause the node to miss rewards.
  
 ### Check the node on the Tracking Server
 Check your node on one of the tracking servers using the 'Nodes>All Nodes' page or the 'Nodes>My Nodes' page (after generating an API key).
@@ -159,9 +159,7 @@ Check your node on one of the tracking servers using the 'Nodes>All Nodes' page 
   * Super Nodes - https://supernodes.zensystem.io
   
 
-For any issues or help with a node, submit a ticket to [Support](https://support.horizen.global)
-
-For community support, ask questions in the Horizen Discord [#node_tech_support](https://discordapp.com/invite/Hu5mQxR) channel. 
+For support, ask questions in the Horizen Discord [#open-a-ticket](https://discord.com/invite/z8eebsj7Sv) channel. 
 
 
 Instructions on installing a monitoring tool like nodemon or PM2 may be found separately. The suggested monitoring method is in the Installation Guide

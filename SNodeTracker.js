@@ -1,4 +1,3 @@
-
 const { LocalStorage } = require('node-localstorage');
 const fs = require('fs');
 const StdRPC = require('stdrpc');
@@ -18,7 +17,6 @@ const cfg = {
   password: zencfg.rpcpassword,
 };
 
-const os = process.platform;
 const logtime = () => `${(new Date()).toISOString().replace(/T/, ' ').replace(/\..+/, '')} UTC --`;
 const rpcError = (err, txt, cb) => {
   // response data may be an object or string
@@ -64,7 +62,6 @@ if (savedCfg) {
   statCfg.statsRetryMax = 3;
 }
 
-
 class SNode {
   constructor(rpc, cfgzen) {
     this.rpc = rpc;
@@ -81,17 +78,7 @@ class SNode {
     };
     this.statsLastSentTime = null;
     this.configcount = 0;
-    this.chalStart = null;
-    this.chalRunning = false;
     this.queueCount = 0;
-    this.opTimer = null;
-    this.opTimerInterval = 1000 * 2;
-    this.amt = 0.0001;
-    this.fee = 0.0001;
-    this.minChalBal = 0.001;
-    this.defaultMemTime = 45;
-    this.memBefore = {};
-    this.memNearEnd = {};
     this.waiting = false;
     this.zenDownInterval = 1000 * 60;
     this.zenDownTimer = null;
@@ -144,232 +131,7 @@ class SNode {
         self.waiting = false;
         return cb(null, data[0]);
       })
-      .catch(err => rpcError(err, 'get t-address', cb));
-  }
-
-  getAddrWithBal(cb) {
-    const self = this;
-    const lastChalBlockNum = local.getItem('lastChalBlock');
-    const results = {};
-    self.rpc.getinfo()
-      .then((data) => {
-        let valid = true;
-        if (lastChalBlockNum && data.blocks - parseInt(lastChalBlockNum, 10) < 5) valid = false;
-        return valid;
-      })
-      .then((valid) => {
-        results.valid = valid;
-        return self.rpc.z_listaddresses();
-      })
-      .then((addrs) => {
-        if (addrs.length === 0) {
-          console.log('No private address found. Please create one using \'zen-cli z_getnewaddress\''
-            + ' and send at least 0.02 ZEN for challenges split into 2 or more transactions');
-          return cb(null);
-        }
-        const bals = [];
-
-        return Promise.all(addrs.map(async (addr) => {
-          bals.push({ addr, bal: await self.rpc.z_getbalance(addr) });
-        }))
-          .then(() => {
-            let obj;
-            if (bals.length > 0) {
-              for (let i = 0; i < bals.length; i += 1) {
-                const zaddr = bals[i];
-                if (zaddr.bal) {
-                  if (!obj || (obj && zaddr.bal > obj.bal)) {
-                    obj = {
-                      addr: zaddr.addr,
-                      bal: zaddr.bal,
-                      valid: results.valid,
-                      lastChalBlock: lastChalBlockNum,
-                    };
-                  }
-                }
-              }
-            }
-            if (obj) return cb(null, obj);
-            return cb('Unable to get a z-addr balance');
-          });
-      })
-      .catch(err => rpcError(err, 'get addrwithbalance', cb));
-  }
-
-  execChallenge(chal) {
-    const self = this;
-    console.log(logtime(), `Start challenge ${chal.crid}`);
-
-    if (self.chalRunning) {
-      const resp = { crid: chal.crid, status: 'error', error: `Previous challenge still running.  ${self.crid}` };
-      resp.ident = self.ident;
-      self.socket.emit('chalresp', resp);
-      console.log(logtime(), `Challenge ${self.crid} is currently running. Failed ${chal.crid}`);
-      return;
-    }
-
-    if (os === 'linux') self.memBefore = self.getProcMeminfo(false);
-    self.crid = chal.crid;
-    self.rpc.getblockhash(chal.blocknum)
-      .then((hash) => {
-        self.queueCount = 0;
-        if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-        self.rpc.getblock(hash)
-          .then((block) => {
-            const msgBuff = new Buffer.from(block.merkleroot);
-            const amts = [{ address: chal.sendto, amount: self.amt, memo: msgBuff.toString('hex') }];
-
-            self.getAddrWithBal((err, result) => {
-              if (err) {
-                const resp = { crid: chal.crid, status: 'error', error: err };
-                resp.ident = self.ident;
-                self.socket.emit('chalresp', resp);
-                console.log(logtime(), `Challenge ${self.crid} was unable to complete due to ${err}`);
-                return;
-              }
-
-              const zaddr = result.addr;
-              if (result.bal === 0) {
-                console.log(logtime(), 'Challenge z-address balance is 0 at the moment. Cannot perform challenge');
-              }
-              console.log(`Using ${zaddr} for challenge. bal=${result.bal}`);
-              if (zaddr && result.bal > 0) {
-                self.rpc.z_sendmany(zaddr, amts, 1, self.fee)
-                  .then((opid) => {
-                    console.log(`OperationId=${opid}`);
-                    self.chalStart = new Date();
-                    self.chalRunning = true;
-                    self.opTimer = setInterval(() => {
-                      self.checkOp(opid, chal);
-                    }, self.opTimerInterval);
-                  })
-                  .catch((error) => {
-                    const resp = { crid: chal.crid, status: 'error', error: 'unable to create transaction' };
-                    resp.ident = self.ident;
-                    console.log(logtime(), 'ERROR Challenge: unable to create and send transaction.');
-                    console.error(logtime(), error);
-                    self.socket.emit('chalresp', resp);
-                  });
-              } else {
-                const resp = { crid: chal.crid, status: 'error', error: 'no available balance found or 0' };
-                resp.ident = self.ident;
-                console.log(logtime(), 'Challenge: unable to find address with balance or balance 0.');
-                self.socket.emit('chalresp', resp);
-              }
-            });
-          });
-      })
-      .catch(err => rpcError(err, 'get block hash for challenge', (errmsg, errtype) => {
-        const resp = { crid: chal.crid, status: 'failed' };
-        if (errtype && errtype === 'starting') {
-          resp.error = errmsg;
-        } else {
-          resp.error = 'could not get block hash from zend';
-        }
-        self.chalRunning = false;
-        resp.ident = self.ident;
-        self.socket.emit('chalresp', resp);
-        console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
-        if (!self.zenDownTimer) {
-          self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
-        }
-      }));
-  }
-
-  async checkOp(opid, chal) {
-    const self = this;
-    if (!self.chalRunning) {
-      console.log(logtime(), 'Clearing challenge timer');
-      clearInterval(self.opTimer);
-      return;
-    }
-    if (self.queueCount > 0) return;
-    self.queueCount += 1;
-    await self.rpc.z_getoperationstatus([opid])
-      .then((operation) => {
-        self.queueCount -= 1;
-        const elapsed = (((new Date()) - self.chalStart) / 1000).toFixed(0);
-        if (operation.length === 0) {
-          if (elapsed < 12) return;
-          // if here then operation lost or unavailable.
-          self.chalRunning = false;
-          const resp = { crid: chal.crid, status: 'failed', error: 'No operation found.' };
-          resp.ident = self.ident;
-          self.socket.emit('chalresp', resp);
-          console.log(logtime(), 'Challenge submit: failed. Could not find zen operation.');
-          console.log(logtime(), 'Clearing timer');
-          clearInterval(self.opTimer);
-          return;
-        }
-
-        const op = operation[0];
-        if (elapsed % 10 === 0) console.log(logtime(), `Elapsed challenge time=${elapsed}  status=${op.status}`);
-        if (op.status === 'success') {
-          console.log(logtime(), `Challenge submit: ${op.status}`);
-          const resp = {
-            crid: chal.crid,
-            status: op.status,
-            txid: op.result.txid,
-            execSeconds: op.execution_secs,
-            created: op.creation_time,
-          };
-          if (os === 'linux') {
-            resp.memBefore = self.memBefore;
-            resp.memNearEnd = self.memNearEnd;
-          }
-          console.log(logtime(), `Challenge result:${op.status} seconds:${op.execution_secs}`);
-          resp.ident = self.ident;
-          self.chalRunning = false;
-          self.socket.emit('chalresp', resp);
-          local.setItem('lastExecSec', (op.execution_secs).toFixed(2));
-          self.getBlockHeight(true);
-          self.queueCount = 0;
-
-          // clear the operation from queue
-          self.rpc.z_getoperationresult([opid])
-            .catch((err) => {
-              console.log(logtime(), 'ERROR getoperationresult unable to get data from zend');
-              console.error(logtime(), err.message, err.response.data);
-            });
-        } else if (op.status === 'failed') {
-          console.log(logtime(), `Challenge result:${op.status}`);
-          console.log(logtime(), op.error.message);
-
-          const resp = { crid: chal.crid, status: op.status, error: op.error.message };
-          self.chalRunning = false;
-          resp.ident = self.ident;
-          self.socket.emit('chalresp', resp);
-          self.queueCount = 0;
-
-          // clear the operation from queue
-          self.rpc.z_getoperationresult([opid])
-            .catch((err) => {
-              console.log(logtime(), 'ERROR getoperationresult  unable to get data from zend');
-              console.error(logtime(), err.message, err.response.data);
-            });
-        } else if (os === 'linux' && op.status === 'executing') {
-          const last = local.getItem('lastExecSec') || self.defaultMemTime;
-          if (last - elapsed < 12) {
-            self.memNearEnd = self.getProcMeminfo(false);
-          }
-        }
-      })
-      .catch(err => rpcError(err, 'get operation status', (errmsg, errtype) => {
-        if (errtype && errtype === 'queue') {
-          console.log(logtime(), 'ERROR: challenge - waiting for room in work queue');
-          return;
-        }
-        const resp = { crid: chal.crid, status: 'failed', error: 'could not get challenge operation status' };
-        self.chalRunning = false;
-        resp.ident = self.ident;
-        self.socket.emit('chalresp', resp);
-        console.log(logtime(), `ERROR: challenge failing challenge id ${chal.crid} block ${chal.blocknum}`);
-        self.queueCount = 0;
-
-        if (!self.zenDownTimer) {
-          self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
-        }
-      }));
+      .catch((err) => rpcError(err, 'get t-address', cb));
   }
 
   getConfig(req, trkver, hw, nodejs, platform) {
@@ -394,7 +156,7 @@ class SNode {
         config.statsInterval = self.statsCfg.statsInterval;
         self.socket.emit('node', { type: 'config', ident: self.ident, config });
       })
-      .catch(err => rpcError(err, 'get config', () => { }));
+      .catch((err) => rpcError(err, 'get config', () => { }));
   }
 
   collectStats() {
@@ -414,7 +176,7 @@ class SNode {
         if (!self.zenDownTimer) self.zenDownTimer = setInterval(self.zenDownLoop, self.zenDownInterval);
       } else {
         if (self.zenDownTimer) clearInterval(self.zenDownTimer);
-        const stats2 = Object.assign({}, stats);
+        const stats2 = { ...stats };
         let display = '';
         Object.entries(stats2).forEach((s) => {
           display += `${s[0]}:${s[1]}  `;
@@ -459,35 +221,20 @@ class SNode {
     if (self.waiting) return cb('Waiting for zend');
     return self.rpc.getinfo()
       .then((data) => {
-        self.rpc.z_getoperationstatus()
-          .then((ops) => {
-            let count = 0;
-            for (let i = 0; i < ops.length; i += 1) {
-              count += ops[i].status === 'queued' ? 1 : 0;
-            }
-            self.getAddrWithBal((err, addrBal) => {
-              if (err) return cb(err);
-              const stats = {
-                blocks: data.blocks,
-                peers: data.connections,
-                bal: addrBal.bal,
-                isValidBal: addrBal.valid,
-                queueDepth: count,
-                lastChalBlock: addrBal.lastChalBlock,
-                lastExecSec: local.getItem('lastExecSec'),
-              };
+        // leave queueDepth and lastExecSec for server compatibility
+        const stats = {
+          blocks: data.blocks,
+          peers: data.connections,
+          queueDepth: 0,
+          lastExecSec: 0,
+        };
 
-              if (addrBal.bal < self.minChalBal && addrBal.valid) {
-                console.log(logtime(), `Low challenge balance. ${addrBal.bal}`);
-              }
-              if (self.ident) {
-                return cb(null, stats);
-              }
-              return cb('ident not set');
-            });
-          });
+        if (self.ident) {
+          return cb(null, stats);
+        }
+        return cb('ident not set');
       })
-      .catch(err => rpcError(err, 'get stats', cb));
+      .catch((err) => rpcError(err, 'get stats', cb));
   }
 
   getNetworks(req, cb) {
@@ -502,11 +249,7 @@ class SNode {
           cb(null, nets);
         }
       })
-      .catch((err) => {
-        console.log(logtime(), 'ERROR: getNetworks  unable to get data from zend');
-        console.error(logtime(), err.message, err.response.data);
-        return cb(err.message);
-      });
+      .catch((err) => rpcError(err, 'get networks', cb));
   }
 
   getTLSPeers(cb) {
@@ -540,7 +283,7 @@ class SNode {
         if (setLast) local.setItem('lastChalBlock', data.blocks);
         return data.blocks;
       })
-      .catch(err => rpcError(err, 'get blockheight', () => { }));
+      .catch((err) => rpcError(err, 'get blockheight', () => { }));
   }
 
   getProcMeminfo(display, save) {
@@ -584,6 +327,5 @@ class SNode {
     return data;
   }
 }
-
 
 module.exports = SNode;

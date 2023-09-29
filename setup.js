@@ -5,7 +5,7 @@ const { LocalStorage } = require('node-localstorage');
 
 const localStorage = new LocalStorage('./config');
 const Zen = require('./zencfg');
-const init = require('./init');
+const init = require('./init.json');
 
 const file = './config/config.json';
 const newcfg = {};
@@ -119,7 +119,7 @@ const ipValidator = (value) => {
 };
 
 const regValidator = (value) => {
-  const found = regions.find(reg => reg === value);
+  const found = regions.find((reg) => reg === value);
   if (found) {
     return value;
   }
@@ -160,7 +160,7 @@ const setHomeServer = (reg, servers) => {
 };
 
 const saveConfig = (cfg, cfgAll) => {
-  const config = Object.assign({}, cfgAll);
+  const config = { ...cfgAll };
   if (cfgAll.cfgOld) {
     // collected from separate files. remove old
     localStorage.clear();
@@ -184,7 +184,6 @@ const promptUser = (cfg, cfgAll, serverInfo) => {
   const msg3 = cfg.fqdn ? ` (Existing: ${cfg.fqdn}):` : ':';
   const msg4 = cfg.ipv ? ` (Existing: ${cfg.ipv}):` : ':';
   const msg5 = region ? ` (Default: ${region}):` : ':';
-
 
   console.log(`Configure for ${newcfg.nodetype} node`);
 
