@@ -221,24 +221,18 @@ class SNode {
     if (self.waiting) return cb('Waiting for zend');
     return self.rpc.getinfo()
       .then((data) => {
-        self.rpc.z_getoperationstatus()
-          .then((ops) => {
-            let count = 0;
-            for (let i = 0; i < ops.length; i += 1) {
-              count += ops[i].status === 'queued' ? 1 : 0;
-            }
-            const stats = {
-              blocks: data.blocks,
-              peers: data.connections,
-              queueDepth: count,
-              lastExecSec: local.getItem('lastExecSec'),
-            };
+        // leave queueDepth and lastExecSec for server compatibility
+        const stats = {
+          blocks: data.blocks,
+          peers: data.connections,
+          queueDepth: 0,
+          lastExecSec: 0,
+        };
 
-            if (self.ident) {
-              return cb(null, stats);
-            }
-            return cb('ident not set');
-          });
+        if (self.ident) {
+          return cb(null, stats);
+        }
+        return cb('ident not set');
       })
       .catch((err) => rpcError(err, 'get stats', cb));
   }
@@ -255,11 +249,7 @@ class SNode {
           cb(null, nets);
         }
       })
-      .catch((err) => {
-        console.log(logtime(), 'ERROR: getNetworks  unable to get data from zend');
-        console.error(logtime(), err.message, err.response.data);
-        return cb(err.message);
-      });
+      .catch((err) => rpcError(err, 'get networks', cb));
   }
 
   getTLSPeers(cb) {
