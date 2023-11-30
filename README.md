@@ -21,6 +21,10 @@ See the [Installation Guide](https://horizenofficial.atlassian.net/wiki/spaces/Z
 
 ## Changes
 
+  #### 0.5.1
+    - Fix setup for new nodes (thanks to valamidev)
+      Note: existing nodes do not need to update.
+
   #### 0.5.0
     - Remove challenges
     - Remove check for private addresses

@@ -22,12 +22,12 @@ const convertConfig = () => {
 
   const cfgOld = {};
   cfgOld.nodeid = localStorage.getItem('nodeid');
-  cfgOld.stakeaddr = stakeaddrLS ? stakeaddrLS.trim() : null;
-  cfgOld.email = emailLS ? emailLS.trim() : null;
-  cfgOld.fqdn = fqdnLS ? fqdnLS.trim() : null;
-  cfgOld.region = regionLS ? regionLS.trim() : null;
+  cfgOld.stakeaddr = stakeaddrLS ? stakeaddrLS.trim() : '';
+  cfgOld.email = emailLS ? emailLS.trim() : '';
+  cfgOld.fqdn = fqdnLS ? fqdnLS.trim() : '';
+  cfgOld.region = regionLS ? regionLS.trim() : '';
   cfgOld.ipv = ipvLS ? ipvLS.trim() : '4';
-  cfgOld.category = catLS ? catLS.trim() : null;
+  cfgOld.category = catLS ? catLS.trim() : '';
   if (cfgOld.stakeaddr) cfgOld.replace = true;
   return { cfgOld };
 };
